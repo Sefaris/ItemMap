@@ -11,7 +11,6 @@ namespace GOTHIC_ENGINE {
 		}
 
 		bool shift = (zKeyPressed(KEY_LSHIFT) || zKeyPressed(KEY_RSHIFT));
-		bool uppercase = shift;
 
 		if (key == KEY_ESCAPE)
 		{
@@ -33,11 +32,11 @@ namespace GOTHIC_ENGINE {
 		}
 		else if (key == KEY_PGUP && itemMap->listPage > 0 && itemMap->ShowList)
 		{
-			itemMap->listPage -= 1;
+			itemMap->listPage--;
 		}
 		else if (key == KEY_PGDN && itemMap->listPage < itemMap->listPageMax && itemMap->ShowList)
 		{
-			itemMap->listPage += 1;
+			itemMap->listPage++;
 		}
 		else if (key == KEY_END)
 		{
@@ -95,7 +94,7 @@ namespace GOTHIC_ENGINE {
 
 		itemMap->OnScreen = false;
 
-		oCViewDocumentMap* docMap = this->GetDocumentView(id)->CastTo<oCViewDocumentMap>();
+		oCViewDocumentMap* docMap = zDYNAMIC_CAST<oCViewDocumentMap>(this->GetDocumentView(id));
 		if (!docMap)
 		{
 			return;
@@ -137,15 +136,18 @@ namespace GOTHIC_ENGINE {
 		world2map[1] = world2map[1] * -1.0f;
 #endif
 
+		itemMap->listPage = 0;
+		itemMap->listPageMax = 0;
+		itemMap->search = L"";
+		itemMap->margins = zVEC4(mapPos.X, mapPos.Y, mapPos.X + mapSize.X, mapPos.Y + mapSize.Y);
+
 		itemMap->ClearPrintItems();
 
-		for (int i = 0; i < world->voblist_items->GetNumInList(); i++)
+		auto list = world->voblist_items->next;
+		while (list)
 		{
-			auto item = world->voblist_items->Get(i);
-			if (!item)
-			{
-				continue;
-			}
+			auto item = list->data;
+			list = list->next;
 
 			if (item->instanz < 0)
 			{
@@ -153,11 +155,6 @@ namespace GOTHIC_ENGINE {
 			}
 
 			if (item->flags & ITM_FLAG_NFOCUS)
-			{
-				continue;
-			}
-
-			if (!item->homeWorld)
 			{
 				continue;
 			}
@@ -177,18 +174,13 @@ namespace GOTHIC_ENGINE {
 			pos.X = x;
 			pos.Y = y;
 
-			if (x < mapPos.X || x > mapSize.X || y < mapPos.Y || y > mapSize.Y)
+			if (x < itemMap->margins[0] || x > itemMap->margins[2] || y < itemMap->margins[1] || y > itemMap->margins[3])
 			{
 				continue;
 			}
 
-
 			itemMap->AddPrintItem(new PrintItem(pos, GFX_RED, item->mainflag, item->name));
-			itemMap->AddPrintItemUnique(new PrintItemUnique(item->instanz, item->name, item->amount));
-			itemMap->listPage = 0;
-			itemMap->listPageMax = 0;
-			itemMap->search = L"";
-			itemMap->margins = zVEC4(mapPos.X, mapPos.Y, mapPos.X + mapSize.X, mapPos.Y + mapSize.Y);
+			itemMap->AddPrintItemUnique(item);
 		}
 
 		itemMap->SortUniques();

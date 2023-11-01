@@ -18,7 +18,7 @@ namespace GOTHIC_ENGINE
 		zPOS pos;
 		zCOLOR color;
 		int flag;
-		const zSTRING& name;
+		const zSTRING name;
 
 		PrintItem(zPOS pos, zCOLOR color, int flag, const zSTRING& name)
 			: pos(pos), color(color), flag(flag), name(name)
@@ -28,7 +28,7 @@ namespace GOTHIC_ENGINE
 	struct PrintItemUnique
 	{
 		int instanz;
-		const zSTRING& name;
+		const zSTRING name;
 		int amount;
 
 		PrintItemUnique(int instanz, const zSTRING& name, int amount)
@@ -60,12 +60,12 @@ namespace GOTHIC_ENGINE
 		bool ShowList = true;
 		void ClearPrintItems();
 		void AddPrintItem(PrintItem* printItem);
-		void AddPrintItemUnique(PrintItemUnique* printItemUnique);
+		void AddPrintItemUnique(oCItem* item);
 		void SortUniques();
 		void RefreshLists();
 		zVEC4 margins;
-		int listPage;
-		int listPageMax;
+		size_t listPage;
+		size_t listPageMax;
 		wstring search;
 		bool refresh = false;
 

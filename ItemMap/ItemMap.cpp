@@ -5,20 +5,22 @@ namespace GOTHIC_ENGINE {
 	ItemMap::ItemMap()
 	{
 		this->printViewMarker = new zCView(0, 0, screen->anx(this->imgSize), screen->any(this->imgSize));
-		this->printViewMarker->InsertBack(Z"NINJA_ITEMMAP_MARKER.TGA");
+		zSTRING textureMarker = "ITEMMAP_MARKER.TGA";
+		this->printViewMarker->InsertBack(textureMarker);
 
+		zSTRING textureBackground = "DLG_CONVERSATION.TGA";
 		this->printViewList = new zCView(0, 0, 0, 0);
-		this->printViewList->InsertBack(Z"DLG_CONVERSATION.TGA");
+		this->printViewList->InsertBack(textureBackground);
 
 		this->printViewSearchBar = new zCView(0, 0, 0, 0);
-		this->printViewSearchBar->InsertBack(Z"DLG_CONVERSATION.TGA");
+		this->printViewSearchBar->InsertBack(textureBackground);
 
-		zCTexture* temp = temp->Load(Z"L.TGA", True);
-		temp->GetPixelSize(this->markX, this->markY);
-		temp->Release();
+		zSTRING texturePlayerMark = "L.TGA";
+		zCTexture* temp = temp->Load(texturePlayerMark, True);
 		if (temp)
 		{
-			delete temp;
+			temp->GetPixelSize(this->markX, this->markY);
+			temp->Release();
 		}
 
 		this->search = L"";
@@ -93,8 +95,6 @@ namespace GOTHIC_ENGINE {
 			return;
 		}
 
-		this->listPageMax = std::ceil(this->printItemsUnique.size() / 40.0f) - 1;
-
 		this->printViewList->ClrPrintwin();
 		screen->InsertItem(this->printViewList);
 		this->printViewList->SetPos(0, 0);
@@ -102,21 +102,25 @@ namespace GOTHIC_ENGINE {
 		this->printViewList->SetSize(width, 8192);
 		this->printViewList->SetTransparency(127);
 
-		int x = 200, y = 0, temp = 0;
-		int min = this->listPage * 40;
-		int max = min + 40;
-		int i = -1;
-		for (auto printItemUnique : printItemsUnique)
+		int fontHeight = this->printViewList->FontY();
+		size_t maxItems = (8192 / fontHeight);
+		this->listPageMax = this->printItemsUnique.size() / maxItems;
+
+		if (this->listPage > this->listPageMax)
 		{
-			i++;
-			if (i < min || i > max)
-			{
-				continue;
-			}
+			itemMap->listPage = this->listPageMax;
+		}
 
-			y = temp * 200;
+		int x = 200, y = 0, temp = 0;
+		size_t min = this->listPage * maxItems;
+		size_t max = (min + maxItems) > printItemsUnique.size() ? printItemsUnique.size() : (min + maxItems);
+		for (size_t i = min; i < max; i++)
+		{
+			auto printItemUnique = printItemsUnique[i];
 
-			const zSTRING& txt = printItemUnique->name + Z" x" + Z printItemUnique->amount;
+			y = temp * fontHeight;
+
+			zSTRING txt = printItemUnique->name + zSTRING(" x") + zSTRING(printItemUnique->amount);
 
 			this->printViewList->Print(x, y, txt);
 			temp++;
@@ -136,18 +140,25 @@ namespace GOTHIC_ENGINE {
 
 		screen->InsertItem(this->printViewSearchBar);
 		this->printViewSearchBar->SetPos(screen->anx(this->margins[0] + (((this->margins[2] - this->margins[0]) / 3) * 2)) - 200, screen->any(this->margins[1]) + 300);
-		this->printViewSearchBar->SetSize(screen->anx((this->margins[2] - this->margins[0]) / 3), 200);
+		this->printViewSearchBar->SetSize(screen->anx((this->margins[2] - this->margins[0]) / 3), screen->FontY() * 2);
 		this->printViewSearchBar->SetTransparency(127);
+
+		int fontHeight = this->printViewSearchBar->FontY();
+
+		this->printViewSearchBar->SetFontColor(GFX_WHITE);
+		zSTRING txtSearchTitle = "Search";
+		this->printViewSearchBar->Print(0, 0, txtSearchTitle);
 
 		if (this->search.IsEmpty())
 		{
-			this->printViewSearchBar->SetFontColor(GFX_ORANGE);
-			this->printViewSearchBar->Print(0, 0, Z"Type something to search");
+			zSTRING txtSearchPlaceholder = "Type name or instance";
+			this->printViewSearchBar->SetFontColor(GFX_GREY);
+			this->printViewSearchBar->Print(0, 8192 - fontHeight, txtSearchPlaceholder);
 		}
 		else
 		{
-			this->printViewSearchBar->SetFontColor(GFX_AQUA);
-			this->printViewSearchBar->Print(0, 0, this->search.WToA());
+			this->printViewSearchBar->SetFontColor(GFX_PINK);
+			this->printViewSearchBar->Print(0, 8192 - fontHeight, this->search.WToA());
 		}
 
 		this->printViewSearchBar->Blit();
@@ -171,17 +182,16 @@ namespace GOTHIC_ENGINE {
 		this->printItemsAll.push_back(printItem);
 	}
 
-	void ItemMap::AddPrintItemUnique(PrintItemUnique* printItemUnique)
+	void ItemMap::AddPrintItemUnique(oCItem* item)
 	{
 		for (auto it : printItemsUniqueAll)
 		{
-			if (it->instanz == printItemUnique->instanz) {
-				it->amount = it->amount + printItemUnique->amount;
-				delete printItemUnique;
+			if (it->instanz == item->instanz) {
+				it->amount = it->amount + item->amount;
 				return;
 			}
 		}
-		this->printItemsUniqueAll.push_back(printItemUnique);
+		this->printItemsUniqueAll.push_back(new PrintItemUnique(item->instanz, item->name, item->amount));
 	}
 
 	void ItemMap::RefreshLists()
@@ -207,11 +217,11 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			zSTRING& txt = printItemUnique->name + Z" x" + Z printItemUnique->amount;
-			int x = screen->FontSize(txt);
-			if (x > this->listWidth)
+			zSTRING txt = printItemUnique->name + zSTRING(" x") + zSTRING(printItemUnique->amount);
+			int txtWidth = screen->FontSize(txt);
+			if (txtWidth > this->listWidth)
 			{
-				this->listWidth = x;
+				this->listWidth = txtWidth;
 			}
 
 			printItemsUnique.push_back(printItemUnique);
