@@ -14,6 +14,7 @@ namespace GOTHIC_ENGINE {
 
 		if (key == KEY_ESCAPE)
 		{
+			player->movlock = FALSE;
 			itemMap->OnScreen = false;
 			itemMap->ClearPrintItems();
 
@@ -37,6 +38,28 @@ namespace GOTHIC_ENGINE {
 		else if (key == KEY_PGDN && itemMap->listPage < itemMap->listPageMax && itemMap->ShowList)
 		{
 			itemMap->listPage++;
+		}
+		else if (key == KEY_UP && itemMap->mode < ITEMMAP_MODE_MAX - 1)
+		{
+			itemMap->listPage = 0;
+			itemMap->mode++;
+			itemMap->search = L"";
+		}
+		else if (key == KEY_DOWN && itemMap->mode > 0)
+		{
+			itemMap->listPage = 0;
+			itemMap->mode--;
+			itemMap->search = L"";
+		}
+		else if (key == KEY_RIGHT && itemMap->mode == ITEMMAP_MODE_ITEMS && itemMap->filter < ITEMMAP_FILTER_ALL)
+		{
+			itemMap->listPage = 0;
+			itemMap->filter++;
+		}
+		else if (key == KEY_LEFT && itemMap->mode == ITEMMAP_MODE_ITEMS && itemMap->filter > 0)
+		{
+			itemMap->listPage = 0;
+			itemMap->filter--;
 		}
 		else if (key == KEY_END)
 		{
@@ -108,6 +131,7 @@ namespace GOTHIC_ENGINE {
 		}
 
 		itemMap->OnScreen = true;
+		player->movlock = TRUE;
 
 		auto worldBox = world->bspTree.bspRoot->bbox3D;
 		zVEC4 worldPos;
@@ -115,7 +139,7 @@ namespace GOTHIC_ENGINE {
 		auto mapView = docMap->ViewPageMap;
 		auto mapPos = mapView->PixelPosition;
 		auto mapSize = mapView->PixelSize;
-		zVEC2 mapCenter = zVEC2((mapPos.X + mapSize.X) / 2, (mapPos.Y + mapSize.Y) / 2);
+		zVEC2 mapCenter = zVEC2(((mapPos.X * 2) + mapSize.X) / 2, ((mapPos.Y * 2) + mapSize.Y) / 2);
 
 #if ENGINE >= Engine_G2
 		worldPos[0] = docMap->LevelCoords[0];
@@ -143,11 +167,11 @@ namespace GOTHIC_ENGINE {
 
 		itemMap->ClearPrintItems();
 
-		auto list = world->voblist_items->next;
-		while (list)
+		auto listItems = world->voblist_items->next;
+		while (listItems)
 		{
-			auto item = list->data;
-			list = list->next;
+			auto item = listItems->data;
+			listItems = listItems->next;
 
 			if (item->instanz < 0)
 			{
@@ -155,6 +179,11 @@ namespace GOTHIC_ENGINE {
 			}
 
 			if (item->flags & ITM_FLAG_NFOCUS)
+			{
+				continue;
+			}
+
+			if (!item->GetHomeWorld())
 			{
 				continue;
 			}
@@ -178,9 +207,152 @@ namespace GOTHIC_ENGINE {
 			{
 				continue;
 			}
+			
+			int flag = item->mainflag;
+			int flagFilter = ITEMMAP_FILTER_NONE;
+			zCOLOR color = GFX_COLDGREY;
 
-			itemMap->AddPrintItem(new PrintItem(pos, GFX_RED, item->mainflag, item->name));
-			itemMap->AddPrintItemUnique(item);
+			if (flag == ITM_CAT_NF)
+			{
+				color = GFX_RED;
+				flagFilter = ITEMMAP_FILTER_MELEE;
+			}
+			else if (flag == ITM_CAT_FF)
+			{
+				color = GFX_RED;
+				flagFilter = ITEMMAP_FILTER_RANGED;
+			}
+			else if (flag == ITM_CAT_MUN)
+			{
+				color = GFX_RED;
+				flagFilter = ITEMMAP_FILTER_RANGED;
+			}
+			else if (flag == ITM_CAT_ARMOR)
+			{
+				color = GFX_BROWN;
+				flagFilter = ITEMMAP_FILTER_ARMOR;
+			}
+			else if (flag == ITM_CAT_FOOD)
+			{
+				if (item->GetInstanceName().StartWith("ITPL_"))
+				{
+					color = GFX_GREEN;
+					flagFilter = ITEMMAP_FILTER_PLANT;
+				}
+				else
+				{
+					color = GFX_ORANGE;
+					flagFilter = ITEMMAP_FILTER_FOOD;
+				}
+			}
+			else if (flag == ITM_CAT_DOCS)
+			{
+				color = GFX_YELLOW;
+				flagFilter = ITEMMAP_FILTER_DOC;
+			}
+			else if (flag == ITM_CAT_POTION)
+			{
+				color = GFX_PINK;
+				flagFilter = ITEMMAP_FILTER_POTION;
+			}
+			else if (flag == ITM_CAT_RUNE)
+			{
+				color = GFX_LBLUE;
+				flagFilter = ITEMMAP_FILTER_SPELL;
+			}
+			else if (flag == ITM_CAT_MAGIC)
+			{
+				color = GFX_PURPLE;
+				flagFilter = ITEMMAP_FILTER_MAGICITEM;
+			}
+
+			itemMap->AddPrintItem(new PrintItem(pos, color, flagFilter, item->name));
+			itemMap->AddPrintItemUnique(item->instanz, item->name, item->amount, flagFilter);
+		}
+
+		auto listNpcs = world->voblist_npcs->next;
+		while (listNpcs)
+		{
+			auto npc = listNpcs->data;
+			listNpcs = listNpcs->next;
+
+			//if (npc->attribute[NPC_ATR_HITPOINTS] <= 0)
+			//{
+			//	continue;
+			//}
+
+			zVEC3 npcPos;
+
+			if (npc->state.rtnNow)
+			{
+				if (npc->state.rtnNow->wpname.IsEmpty() || npc->state.rtnNow->wpname.CompareI("TOT"))
+				{
+					continue;
+				}
+
+				auto wp = world->wayNet->GetWaypoint(npc->state.rtnNow->wpname);
+				npcPos = wp->GetPositionWorld();
+			}
+			else
+			{
+				npcPos = npc->state.aiStatePosition;
+			}
+
+			if (npcPos[VX] == 0.0f && npcPos[VY] == 0.0f && npcPos[VZ] == 0.0f)
+			{
+				continue;
+			}
+
+			int x, y;
+
+#if ENGINE <= Engine_G1A
+			x = (world2map[0] * npcPos[VX]) + mapCenter[0];
+			y = (world2map[1] * npcPos[VZ]) + mapCenter[1];
+#else
+			x = (world2map[0] * (npcPos[VX] - worldPos[0])) + mapPos.X;
+			y = mapSize.Y - (world2map[1] * (npcPos[VZ] - worldPos[1])) + mapPos.Y;
+#endif
+			zPOS pos;
+			pos.X = x;
+			pos.Y = y;
+
+			if (x < itemMap->margins[0] || x > itemMap->margins[2] || y < itemMap->margins[1] || y > itemMap->margins[3])
+			{
+				continue;
+			}
+
+			zCOLOR color = GFX_COLDGREY;
+
+			int attitude = npc->GetPermAttitude(player);
+			if (npc->IsHostile(player) || attitude == NPC_ATT_HOSTILE)
+			{
+				if (npc->guild < NPC_GIL_HUMANS)
+				{
+					color = GFX_PURPLE;
+				}
+				else
+				{
+					color = GFX_RED;
+				}
+			}
+
+			if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
+			{
+				color = GFX_ORANGE;
+			}
+
+			if (npc->IsFriendly(player) || npc->npcType == NPCTYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
+			{
+				color = GFX_GREEN;
+			}
+
+			if (ogame->GetGuilds()->GetAttitude(npc->guild, player->guild) == NPC_ATT_FRIENDLY)
+			{
+				color = zCOLOR(175, 255, 175);
+			}
+
+			itemMap->AddPrintNpc(new PrintNpc(pos, npc->name, color));
+			itemMap->AddPrintNpcUnique(npc);
 		}
 
 		itemMap->SortUniques();
