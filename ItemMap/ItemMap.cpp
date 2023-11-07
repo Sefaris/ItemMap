@@ -48,94 +48,138 @@ namespace GOTHIC_ENGINE {
 
 	zSTRING ItemMap::GetFilterName()
 	{
-		if (this->filter == ITEMMAP_FILTER_PLANT)
+		switch (static_cast<ItemMapFilter>(this->filter))
 		{
+		case ItemMapFilter::ARMOR:
+			return "Armor";
+		case ItemMapFilter::PLANT:
 			return "Plants";
-		}
-		else if (this->filter == ITEMMAP_FILTER_MELEE)
-		{
+		case ItemMapFilter::MELEE:
 			return "Melee";
-		}
-		else if (this->filter == ITEMMAP_FILTER_RANGED)
-		{
+		case ItemMapFilter::RANGED:
 			return "Ranged";
-		}
-		else if (this->filter == ITEMMAP_FILTER_ARMOR)
-		{
-			return "Armors";
-		}
-		else if (this->filter == ITEMMAP_FILTER_DOC)
-		{
+		case ItemMapFilter::DOC:
 			return "Docs";
-		}
-		else if (this->filter == ITEMMAP_FILTER_SPELL)
-		{
+		case ItemMapFilter::SPELL:
 			return "Spells";
-		}
-		else if (this->filter == ITEMMAP_FILTER_MAGICITEM)
-		{
+		case ItemMapFilter::MAGICITEM:
 			return "Magic";
-		}
-		else if (this->filter == ITEMMAP_FILTER_POTION)
-		{
+		case ItemMapFilter::POTION:
 			return "Potions";
-		}
-		else if (this->filter == ITEMMAP_FILTER_FOOD)
-		{
+		case ItemMapFilter::FOOD:
 			return "Food";
-		}
-		else if (this->filter == ITEMMAP_FILTER_NONE)
-		{
+		case ItemMapFilter::NONE:
 			return "None";
-		}
-		else if (this->filter == ITEMMAP_FILTER_ALL)
-		{
+		case ItemMapFilter::ALL:
 			return "All";
 		}
 
 		return "Unknown";
 	}
 
+	zCOLOR ItemMap::GetColor(oCItem* item)
+	{
+		switch (item->mainflag)
+		{
+		case ITM_CAT_NF:
+		case ITM_CAT_FF:
+		case ITM_CAT_MUN:
+			return GFX_RED;
+		case ITM_CAT_ARMOR:
+			return GFX_BROWN;
+		case ITM_CAT_FOOD:
+			if (item->GetInstanceName().StartWith("ITPL_") || item->GetInstanceName().HasWordI("PLANT"))
+			{
+				return GFX_GREEN;
+			}
+			return GFX_ORANGE;
+		case ITM_CAT_DOCS:
+			return GFX_YELLOW;
+		case ITM_CAT_POTION:
+			return GFX_PINK;
+		case ITM_CAT_RUNE:
+			return GFX_LBLUE;
+		case ITM_CAT_MAGIC:
+			return GFX_PURPLE;
+		}
+
+		return GFX_COLDGREY;
+	}
+
+	ItemMapFilter ItemMap::GetFilterFlag(oCItem* item)
+	{
+		switch (item->mainflag)
+		{
+		case ITM_CAT_NF:
+			return ItemMapFilter::MELEE;
+		case ITM_CAT_FF:
+		case ITM_CAT_MUN:
+			return ItemMapFilter::RANGED;
+		case ITM_CAT_ARMOR:
+			return ItemMapFilter::ARMOR;
+		case ITM_CAT_FOOD:
+			if (item->GetInstanceName().StartWith("ITPL_") || item->GetInstanceName().HasWordI("PLANT"))
+			{
+				return ItemMapFilter::PLANT;
+			}
+			return ItemMapFilter::FOOD;
+		case ITM_CAT_DOCS:
+			return ItemMapFilter::DOC;
+		case ITM_CAT_POTION:
+			return ItemMapFilter::POTION;
+		case ITM_CAT_RUNE:
+			return ItemMapFilter::SPELL;
+		case ITM_CAT_MAGIC:
+			return ItemMapFilter::MAGICITEM;
+		}
+
+		return ItemMapFilter::NONE;
+	}
+
 	void ItemMap::ClearPrintItems()
 	{
-		for (auto printItem : printItemsAll)
+		for (auto printItem : vecItemsAll)
 		{
 			delete printItem;
 		}
 
-		for (auto printItemUnique : printItemsUniqueAll)
+		for (auto printItemUnique : vecItemsUniqueAll)
 		{
 			delete printItemUnique;
 		}
 
-		for (auto printNpc : printNpcsAll)
+		for (auto printNpc : vecNpcsAll)
 		{
 			delete printNpc;
 		}
 
-		for (auto printNpcUnique : printNpcsUniqueAll)
+		for (auto printNpcUnique : vecNpcsUniqueAll)
 		{
 			delete printNpcUnique;
 		}
 
-		printItemsAll.clear();
-		printItemsUniqueAll.clear();
-		printItems.clear();
-		printItemsUnique.clear();
+		vecItemsAll.clear();
+		vecItemsUniqueAll.clear();
 
-		printNpcsAll.clear();
-		printNpcsUniqueAll.clear();
-		printNpcs.clear();
-		printNpcsUnique.clear();
+		vecNpcsAll.clear();
+		vecNpcsUniqueAll.clear();
+
+		vecPrintItemsCurrent.clear();
+		vecPrintItemsUniqueCurrent.clear();
 	}
 
 	void ItemMap::SortUniques()
 	{
-		std::sort(this->printItemsUniqueAll.begin(), this->printItemsUniqueAll.end(), SortPrintItemUnique());
-		std::sort(this->printNpcsUniqueAll.begin(), this->printNpcsUniqueAll.end(), SortPrintNpcUnique());
+		std::sort(this->vecItemsUniqueAll.begin(), this->vecItemsUniqueAll.end(), [](const auto& left, const auto& right) {
+			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
+		});
+
+		std::sort(this->vecNpcsUniqueAll.begin(), this->vecNpcsUniqueAll.end(), [](const auto& left, const auto& right) {
+			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
+		});
 	}
 
-	void ItemMap::PrintNpcsMarkers()
+	void ItemMap::PrintMarkers()
 	{
 		if (!this->ShowMarkers)
 		{
@@ -145,80 +189,16 @@ namespace GOTHIC_ENGINE {
 		this->printViewMarker->ClrPrintwin();
 
 		screen->InsertItem(this->printViewMarker);
-		for (auto printNpc : printNpcs)
+		for (auto printItem : vecPrintItemsCurrent)
 		{
-			this->printViewMarker->SetPos(screen->anx(printNpc->pos.X) + this->markX, screen->any(printNpc->pos.Y) + this->markY);
-			this->printViewMarker->SetColor(printNpc->color);
-			this->printViewMarker->Blit();
-		}
-		screen->RemoveItem(this->printViewMarker);
-	}
-
-	void ItemMap::PrintNpcsList()
-	{
-		if (!this->ShowList)
-		{
-			return;
-		}
-
-		this->printViewList->ClrPrintwin();
-		screen->InsertItem(this->printViewList);
-		this->printViewList->SetPos(0, 0);
-		this->printViewList->SetSize(this->listWidth, 8192);
-		this->printViewList->SetTransparency(127);
-
-		int fontHeight = this->printViewList->FontY();
-		size_t maxItems = (8192 / fontHeight);
-		this->listPageMax = this->printNpcsUnique.size() / maxItems;
-
-		if (this->listPage > this->listPageMax)
-		{
-			itemMap->listPage = this->listPageMax;
-		}
-
-		int x = 200, y = 0, temp = 0;
-		size_t min = this->listPage * maxItems;
-		size_t max = (min + maxItems) > printNpcsUnique.size() ? printNpcsUnique.size() : (min + maxItems);
-		for (size_t i = min; i < max; i++)
-		{
-			auto printNpcUnique = printNpcsUnique[i];
-
-			y = temp * fontHeight;
-
-			zSTRING txt = printNpcUnique->name;
-
-			if (printNpcUnique->count > 1)
-			{
-				txt = txt + zSTRING(" x") + zSTRING(printNpcUnique->count);
-			}
-
-			this->printViewList->Print(x, y, txt);
-			temp++;
-		}
-		this->printViewList->Blit();
-		screen->RemoveItem(this->printViewList);
-	}
-
-	void ItemMap::PrintItemsMarkers()
-	{
-		if (!this->ShowMarkers)
-		{
-			return;
-		}
-
-		this->printViewMarker->ClrPrintwin();
-
-		screen->InsertItem(this->printViewMarker);
-		for (auto printItem : printItems)
-		{
-			this->printViewMarker->SetPos(screen->anx(printItem->pos.X) + this->markX, screen->any(printItem->pos.Y) + this->markY);
+			this->printViewMarker->SetPos(printItem->pos.X, printItem->pos.Y);
 			this->printViewMarker->SetColor(printItem->color);
 			this->printViewMarker->Blit();
 		}
 		screen->RemoveItem(this->printViewMarker);
 	}
 
-	void ItemMap::PrintItemsList()
+	void ItemMap::PrintList()
 	{
 		if (!this->ShowList)
 		{
@@ -233,7 +213,7 @@ namespace GOTHIC_ENGINE {
 
 		int fontHeight = this->printViewList->FontY();
 		size_t maxItems = (8192 / fontHeight);
-		this->listPageMax = this->printItemsUnique.size() / maxItems;
+		this->listPageMax = this->vecPrintItemsUniqueCurrent.size() / maxItems;
 
 		if (this->listPage > this->listPageMax)
 		{
@@ -242,14 +222,14 @@ namespace GOTHIC_ENGINE {
 
 		int x = 200, y = 0, temp = 0;
 		size_t min = this->listPage * maxItems;
-		size_t max = (min + maxItems) > printItemsUnique.size() ? printItemsUnique.size() : (min + maxItems);
+		size_t max = (min + maxItems) > vecPrintItemsUniqueCurrent.size() ? vecPrintItemsUniqueCurrent.size() : (min + maxItems);
 		for (size_t i = min; i < max; i++)
 		{
-			auto printItemUnique = printItemsUnique[i];
+			auto printItemUnique = vecPrintItemsUniqueCurrent[i];
 
 			y = temp * fontHeight;
 
-			zSTRING txt = printItemUnique->name + zSTRING(" x") + zSTRING(printItemUnique->amount);
+			zSTRING txt = printItemUnique->name + zSTRING(" x") + zSTRING(printItemUnique->num);
 
 			this->printViewList->Print(x, y, txt);
 			temp++;
@@ -277,35 +257,33 @@ namespace GOTHIC_ENGINE {
 
 		this->printViewSearchBar->SetFontColor(GFX_COLDGREY);
 
-		if (this->mode == ITEMMAP_MODE_ITEMS)
+		ItemMapMode mode = static_cast<ItemMapMode>(this->mode);
+		zSTRING txtSearchFilter = "Unknown";
+
+		switch (mode)
 		{
-			zSTRING less = "<<";
-			zSTRING more = ">>";
+		case ItemMapMode::ITEMS:
 			if (this->filter > 0)
 			{
+				zSTRING less = "<<";
 				this->printViewSearchBar->Print(0, y, less);
 			}
-			if (this->filter < ITEMMAP_FILTER_ALL)
+			if (static_cast<ItemMapFilter>(this->filter) < ItemMapFilter::ALL)
 			{
+				zSTRING more = ">>";
 				this->printViewSearchBar->Print(8192 - this->printViewSearchBar->FontSize(more), y, more);
 			}
 
-			zSTRING txtSearchFilter = "Items - " + this->GetFilterName();
-			int txtSearchFilterWidth = this->printViewSearchBar->FontSize(txtSearchFilter);
-			this->printViewSearchBar->Print(0 + (8192 / 2) - (txtSearchFilterWidth / 2), fontHeight * y++, txtSearchFilter);
+			txtSearchFilter = "Items - " + this->GetFilterName();
+
+			break;
+		case ItemMapMode::NPCS:
+			txtSearchFilter = "NPCs";
+			break;
 		}
-		else if (this->mode == ITEMMAP_MODE_NPCS)
-		{
-			zSTRING txtSearchFilter = "NPCs";
-			int txtSearchFilterWidth = this->printViewSearchBar->FontSize(txtSearchFilter);
-			this->printViewSearchBar->Print(0 + (8192 / 2) - (txtSearchFilterWidth / 2), fontHeight * y++, txtSearchFilter);
-		}
-		else
-		{
-			zSTRING txtSearchFilter = "Unknown";
-			int txtSearchFilterWidth = this->printViewSearchBar->FontSize(txtSearchFilter);
-			this->printViewSearchBar->Print(0 + (8192 / 2) - (txtSearchFilterWidth / 2), fontHeight * y++, txtSearchFilter);
-		}
+
+		int txtSearchFilterWidth = this->printViewSearchBar->FontSize(txtSearchFilter);
+		this->printViewSearchBar->Print(0 + (8192 / 2) - (txtSearchFilterWidth / 2), fontHeight * y++, txtSearchFilter);
 
 		this->printViewSearchBar->SetFontColor(GFX_WHITE);
 		zSTRING txtSearchTitle = "Search";
@@ -334,109 +312,104 @@ namespace GOTHIC_ENGINE {
 			return;
 		}
 
-		if (this->mode == ITEMMAP_MODE_ITEMS)
-		{
-			this->PrintItemsMarkers();
-			this->PrintItemsList();
-		}
-		else if (this->mode == ITEMMAP_MODE_NPCS)
-		{
-			this->PrintNpcsMarkers();
-			this->PrintNpcsList();
-		}
-
+		this->PrintList();
+		this->PrintMarkers();
 		this->PrintSearchBar();
+
+		int ScreenX, ScreenY, ScreenSX, ScreenSY;
+		screen->GetViewport(ScreenX, ScreenY, ScreenSX, ScreenSY);
+		zrenderer->SetViewport(ScreenX, ScreenY, ScreenSX, ScreenSY);
 	}
 
 	void ItemMap::AddPrintItem(PrintItem* printItem)
 	{
-		this->printItemsAll.push_back(printItem);
+		this->vecItemsAll.push_back(printItem);
 	}
 
-	void ItemMap::AddPrintItemUnique(int instanz, const zSTRING& name, int amount, int flag)
+	void ItemMap::AddPrintItemUnique(int instanz, const zSTRING& name, int amount, ItemMapFilter flag)
 	{
-		for (auto it : printItemsUniqueAll)
+		for (auto it : vecItemsUniqueAll)
 		{
 			if (it->instanz == instanz) {
-				it->amount = it->amount + amount;
+				it->num = it->num + amount;
 				return;
 			}
 		}
-		this->printItemsUniqueAll.push_back(new PrintItemUnique(instanz, name, amount, flag));
+		this->vecItemsUniqueAll.push_back(new PrintItemUnique(instanz, name, amount, flag));
 	}
 
-	void ItemMap::AddPrintNpc(PrintNpc* printNpc)
+	void ItemMap::AddPrintNpc(PrintItem* printNpc)
 	{
-		this->printNpcsAll.push_back(printNpc);
+		this->vecNpcsAll.push_back(printNpc);
 	}
 
 	void ItemMap::AddPrintNpcUnique(oCNpc* npc)
 	{
-		for (auto it : printNpcsUniqueAll)
+		for (auto it : vecNpcsUniqueAll)
 		{
 			if (it->instanz == npc->instanz) {
-				it->count = it->count + 1;
+				it->num = it->num + 1;
 				return;
 			}
 		}
-		this->printNpcsUniqueAll.push_back(new PrintNpcUnique(npc->instanz, npc->name, 1));
+		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(npc->instanz, npc->name, 1));
 	}
 
 	void ItemMap::RefreshLists()
 	{
-		printItems.clear();
-		printItemsUnique.clear();
-		printNpcs.clear();
-		printNpcsUnique.clear();
+		vecPrintItemsCurrent.clear();
+		vecPrintItemsUniqueCurrent.clear();
 
-		for (auto printItem : printItemsAll)
+		ItemMapFilter filter = static_cast<ItemMapFilter>(itemMap->filter);
+		ItemMapMode mode = static_cast<ItemMapMode>(itemMap->mode);
+
+		std::vector<PrintItem*>* vecAll = nullptr;
+		std::vector<PrintItemUnique*>* vecUniqueAll = nullptr;
+
+		if (mode == ItemMapMode::ITEMS)
+		{
+			vecAll = &vecItemsAll;
+			vecUniqueAll = &vecItemsUniqueAll;
+		}
+		else if (mode == ItemMapMode::NPCS)
+		{
+			vecAll = &vecNpcsAll;
+			vecUniqueAll = &vecNpcsUniqueAll;
+		}
+
+		if (!vecAll && !vecUniqueAll)
+		{
+			return;
+		}
+
+		for (auto printItem : *vecAll)
 		{
 			if (!this->search.IsEmpty() && !printItem->name.HasWordI(this->search.WToA()))
 			{
 				continue;
 			}
 
-			if (itemMap->filter != ITEMMAP_FILTER_ALL && printItem->flag != itemMap->filter)
+			if (mode == ItemMapMode::ITEMS && filter != ItemMapFilter::ALL && printItem->flag != static_cast<ItemMapFilter>(itemMap->filter))
 			{
 				continue;
 			}
 
-			printItems.push_back(printItem);
+			vecPrintItemsCurrent.push_back(printItem);
 		}
 
-		for (auto printItemUnique : printItemsUniqueAll)
+		for (auto printItemUnique : *vecUniqueAll)
 		{
 			if (!this->search.IsEmpty() && !printItemUnique->name.HasWordI(this->search.WToA()))
 			{
 				continue;
 			}
 
-			if (itemMap->filter != ITEMMAP_FILTER_ALL && printItemUnique->flag != itemMap->filter)
+			if (mode == ItemMapMode::ITEMS && filter != ItemMapFilter::ALL && printItemUnique->flag != static_cast<ItemMapFilter>(itemMap->filter))
 			{
 				continue;
 			}
 
-			printItemsUnique.push_back(printItemUnique);
-		}
-
-		for (auto printNpc : printNpcsAll)
-		{
-			if (!this->search.IsEmpty() && !printNpc->name.HasWordI(this->search.WToA()))
-			{
-				continue;
-			}
-
-			printNpcs.push_back(printNpc);
-		}
-
-		for (auto printNpcUnique : printNpcsUniqueAll)
-		{
-			if (!this->search.IsEmpty() && !printNpcUnique->name.HasWordI(this->search.WToA()))
-			{
-				continue;
-			}
-
-			printNpcsUnique.push_back(printNpcUnique);
+			vecPrintItemsUniqueCurrent.push_back(printItemUnique);
 		}
 	}
 }

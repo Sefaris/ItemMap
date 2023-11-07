@@ -3,46 +3,36 @@
 
 namespace GOTHIC_ENGINE
 {
-	enum
+	enum class ItemMapMode : int
 	{
-		ITEMMAP_MODE_ITEMS = 0,
-		ITEMMAP_MODE_NPCS,
-		ITEMMAP_MODE_MAX
+		ITEMS,
+		NPCS,
+		MAX
 	};
 
-	enum
+	enum class ItemMapFilter : int
 	{
-		ITEMMAP_FILTER_PLANT = 0,
-		ITEMMAP_FILTER_MELEE,
-		ITEMMAP_FILTER_RANGED,
-		ITEMMAP_FILTER_ARMOR,
-		ITEMMAP_FILTER_DOC,
-		ITEMMAP_FILTER_SPELL,
-		ITEMMAP_FILTER_MAGICITEM,
-		ITEMMAP_FILTER_POTION,
-		ITEMMAP_FILTER_FOOD,
-		ITEMMAP_FILTER_NONE,
-		ITEMMAP_FILTER_ALL
+		PLANT,
+		MELEE,
+		RANGED,
+		ARMOR,
+		DOC,
+		SPELL,
+		MAGICITEM,
+		POTION,
+		FOOD,
+		NONE,
+		ALL
 	};
-
-	inline auto operator < (const zSTRING& left, const zSTRING& right)
-	{
-		return strcmp(left.ToChar(), right.ToChar()) < 0;
-	}
-
-	inline auto operator > (const zSTRING& left, const zSTRING& right)
-	{
-		return strcmp(left.ToChar(), right.ToChar()) > 0;
-	}
 
 	struct PrintItem
 	{
 		zPOS pos;
 		zCOLOR color;
-		int flag;
 		zSTRING name;
+		ItemMapFilter flag;
 
-		PrintItem(zPOS pos, zCOLOR color, int flag, const zSTRING& name)
+		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, ItemMapFilter flag = ItemMapFilter::NONE)
 			: pos(pos), color(color), flag(flag), name(name)
 		{}
 	};
@@ -51,60 +41,12 @@ namespace GOTHIC_ENGINE
 	{
 		int instanz;
 		zSTRING name;
-		int amount;
-		int flag;
+		int num;
+		ItemMapFilter flag;
 
-		PrintItemUnique(int instanz, const zSTRING& name, int amount, int flag)
-			: instanz(instanz), name(name), amount(amount), flag(flag)
+		PrintItemUnique(int instanz, const zSTRING& name, int num, ItemMapFilter flag = ItemMapFilter::NONE)
+			: instanz(instanz), name(name), num(num), flag(flag)
 		{}
-
-		bool operator < (const PrintItemUnique& printItemUnique) const
-		{
-			return name < printItemUnique.name;
-		}
-	};
-
-	struct SortPrintItemUnique
-	{
-		bool operator () (const PrintItemUnique* left, const PrintItemUnique* right) const
-		{
-			return *left < *right;
-		}
-	};
-
-	struct PrintNpc
-	{
-		zPOS pos;
-		zSTRING name;
-		zCOLOR color;
-
-		PrintNpc(zPOS pos, const zSTRING& name, zCOLOR color)
-			: pos(pos), name(name), color(color)
-		{}
-	};
-
-	struct PrintNpcUnique
-	{
-		int instanz;
-		zSTRING name;
-		int count;
-
-		PrintNpcUnique(int instanz, const zSTRING& name, int count)
-			: instanz(instanz), name(name), count(count)
-		{}
-
-		bool operator < (const PrintNpcUnique& printNpcUnique) const
-		{
-			return name < printNpcUnique.name;
-		}
-	};
-
-	struct SortPrintNpcUnique
-	{
-		bool operator () (const PrintNpcUnique* left, const PrintNpcUnique* right) const
-		{
-			return *left < *right;
-		}
 	};
 
 	class ItemMap
@@ -118,41 +60,39 @@ namespace GOTHIC_ENGINE
 		bool ShowList = false;
 		void ClearPrintItems();
 		void AddPrintItem(PrintItem* printItem);
-		void AddPrintItemUnique(int instanz, const zSTRING& name, int amount, int flag);
-		void AddPrintNpc(PrintNpc* printItem);
+		void AddPrintItemUnique(int instanz, const zSTRING& name, int amount, ItemMapFilter flag);
+		void AddPrintNpc(PrintItem* printItem);
 		void AddPrintNpcUnique(oCNpc* npc);
 		void SortUniques();
 		void RefreshLists();
+		int markX;
+		int markY;
 		zVEC4 margins;
 		size_t listPage;
 		size_t listPageMax;
 		wstring search;
-		int mode = ITEMMAP_MODE_ITEMS;
-		int filter = ITEMMAP_FILTER_PLANT;
+		int mode = 0;
+		int filter = 0;
+		zCOLOR GetColor(oCItem* item);
+		ItemMapFilter GetFilterFlag(oCItem* item);
 
 	private:
 		zCView* printViewMarker;
 		zCView* printViewList;
 		zCView* printViewSearchBar;
 
-		std::vector<PrintItem*> printItemsAll;
-		std::vector<PrintItemUnique*> printItemsUniqueAll;
-		std::vector<PrintItem*> printItems;
-		std::vector<PrintItemUnique*> printItemsUnique;
+		std::vector<PrintItem*> vecItemsAll;
+		std::vector<PrintItemUnique*> vecItemsUniqueAll;
+		std::vector<PrintItem*> vecNpcsAll;
+		std::vector<PrintItemUnique*> vecNpcsUniqueAll;
 
-		std::vector<PrintNpc*> printNpcsAll;
-		std::vector<PrintNpcUnique*> printNpcsUniqueAll;
-		std::vector<PrintNpc*> printNpcs;
-		std::vector<PrintNpcUnique*> printNpcsUnique;
+		std::vector<PrintItem*> vecPrintItemsCurrent;
+		std::vector<PrintItemUnique*> vecPrintItemsUniqueCurrent;
 
 		int imgSize = 10;
-		int markX;
-		int markY;
-		int listWidth = 2500;
-		void PrintItemsMarkers();
-		void PrintItemsList();
-		void PrintNpcsMarkers();
-		void PrintNpcsList();
+		int listWidth = 2000;
+		void PrintMarkers();
+		void PrintList();
 		void PrintSearchBar();
 		zSTRING GetFilterName();
 	};
