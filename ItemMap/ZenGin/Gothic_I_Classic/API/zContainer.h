@@ -4,6 +4,9 @@
 #define __ZCONTAINER_H__VER0__
 
 namespace Gothic_I_Classic {
+
+  extern zCMallocGeneric* zmalloc;
+
   const int zARRAY_START_ALLOC = 16;
   template <class T>
   class zCArray {

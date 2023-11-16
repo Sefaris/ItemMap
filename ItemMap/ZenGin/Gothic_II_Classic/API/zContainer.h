@@ -5,7 +5,7 @@
 
 namespace Gothic_II_Classic {
   const int zARRAY_START_ALLOC = 16;
-
+  extern zCMallocGeneric* zmalloc;
   template <class T>
   class zCArray {
   protected:

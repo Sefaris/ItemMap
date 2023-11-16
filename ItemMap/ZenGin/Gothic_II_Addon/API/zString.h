@@ -4,7 +4,7 @@
 #define __ZSTRING_H__VER3__
 
 #define USING_UNION_STRING_METHODS True
-#define UNPROTECT_ZSTRING_METHODS  False
+#define UNPROTECT_ZSTRING_METHODS  True
 
 namespace Gothic_II_Addon {
 
@@ -466,6 +466,7 @@ namespace Gothic_II_Addon {
     return zSTRING( s1 ) += s2;
   }
 
+  /*
   inline zSTRING& operator += ( zSTRING& s1, const zSTRING& s2 ) {
     return s1.Put( s2, s1.Length() );
   }
@@ -488,7 +489,7 @@ namespace Gothic_II_Addon {
   // case Insensitive
   inline bool_t operator != ( const zSTRING& s1, const char* s2 ) {
     return !s1.CompareI( s2 );
-  }
+  }*/
 
 } // namespace Gothic_II_Addon
 

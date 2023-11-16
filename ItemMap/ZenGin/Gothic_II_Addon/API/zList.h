@@ -5,6 +5,7 @@
 
 #include "zContainer.h"
 #include "zObject.h"
+#include <cassert>
 
 namespace Gothic_II_Addon {
 
@@ -601,7 +602,7 @@ namespace Gothic_II_Addon {
       int iIndex = static_cast<int> ( u32Hash );
 
       if( True == this->m_arrNodes.IsEmpty() )
-        return GEFalse;
+        return False;
 
       zSNode* pNode = this->m_arrNodes[iIndex];
 

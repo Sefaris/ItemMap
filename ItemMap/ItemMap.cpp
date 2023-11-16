@@ -567,7 +567,7 @@ namespace GOTHIC_ENGINE {
 			return vecNpcsAll;
 		}
 
-		return std::vector<PrintItem*>{};
+		assert(false);
 	}
 
 	std::vector<PrintItemUnique*>& ItemMap::GetCurrentVectorUniques()
@@ -580,7 +580,7 @@ namespace GOTHIC_ENGINE {
 			return vecNpcsUniqueAll;
 		}
 
-		return std::vector<PrintItemUnique*>{};
+		assert(false);
 	}
 
 	void ItemMap::RefreshLists()

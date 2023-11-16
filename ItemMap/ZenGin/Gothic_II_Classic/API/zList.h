@@ -601,7 +601,7 @@ namespace Gothic_II_Classic {
       int iIndex = static_cast<int> ( u32Hash );
 
       if( True == this->m_arrNodes.IsEmpty() )
-        return GEFalse;
+        return False;
 
       zSNode* pNode = this->m_arrNodes[iIndex];
 

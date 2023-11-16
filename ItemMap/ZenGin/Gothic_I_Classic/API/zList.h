@@ -2,7 +2,7 @@
 
 #ifndef __ZLIST_H__VER0__
 #define __ZLIST_H__VER0__
-
+#include <cassert>
 #include "zContainer.h"
 #include "zObject.h"
 
@@ -598,7 +598,7 @@ namespace Gothic_I_Classic {
       int iIndex = static_cast<int> ( u32Hash );
 
       if( TRUE == this->m_arrNodes.IsEmpty() )
-        return GEFalse;
+        return False;
 
       zSNode* pNode = this->m_arrNodes[iIndex];
 
