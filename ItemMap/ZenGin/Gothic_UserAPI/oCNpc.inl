@@ -3,3 +3,4 @@
 // User API for oCNpc
 // Add your methods here
 
+bool CanBeLooted_Union();

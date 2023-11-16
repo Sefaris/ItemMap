@@ -6,8 +6,7 @@ namespace GOTHIC_ENGINE
 	enum class ItemMapMode : int
 	{
 		ITEMS,
-		NPCS,
-		MAX
+		NPCS
 	};
 
 	enum class ItemMapFilter : int
@@ -30,10 +29,11 @@ namespace GOTHIC_ENGINE
 		zPOS pos;
 		zCOLOR color;
 		zSTRING name;
+		zSTRING instancename;
 		ItemMapFilter flag;
 
-		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, ItemMapFilter flag = ItemMapFilter::NONE)
-			: pos(pos), color(color), flag(flag), name(name)
+		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, ItemMapFilter flag = ItemMapFilter::NONE)
+			: pos(pos), color(color), name(name), instancename(instancename), flag(flag)
 		{}
 	};
 
@@ -41,11 +41,12 @@ namespace GOTHIC_ENGINE
 	{
 		int instanz;
 		zSTRING name;
+		zSTRING instancename;
 		int num;
 		ItemMapFilter flag;
 
-		PrintItemUnique(int instanz, const zSTRING& name, int num, ItemMapFilter flag = ItemMapFilter::NONE)
-			: instanz(instanz), name(name), num(num), flag(flag)
+		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int num, ItemMapFilter flag = ItemMapFilter::NONE)
+			: instanz(instanz), name(name), instancename(instancename), num(num), flag(flag)
 		{}
 	};
 
@@ -60,7 +61,7 @@ namespace GOTHIC_ENGINE
 		bool ShowList = false;
 		void ClearPrintItems();
 		void AddPrintItem(PrintItem* printItem);
-		void AddPrintItemUnique(int instanz, const zSTRING& name, int amount, ItemMapFilter flag);
+		void AddPrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilter flag);
 		void AddPrintNpc(PrintItem* printItem);
 		void AddPrintNpcUnique(oCNpc* npc);
 		void SortUniques();
@@ -71,10 +72,10 @@ namespace GOTHIC_ENGINE
 		size_t listPage;
 		size_t listPageMax;
 		wstring search;
-		int mode = 0;
-		int filter = 0;
-		zCOLOR GetColor(oCItem* item);
-		ItemMapFilter GetFilterFlag(oCItem* item);
+		ItemMapMode mode = ItemMapMode::ITEMS;
+		ItemMapFilter filter = ItemMapFilter::PLANT;
+		zCOLOR GetColor(zCVob* vob);
+		ItemMapFilter GetFilterFlag(zCVob* vob);
 
 	private:
 		zCView* printViewMarker;
@@ -94,6 +95,8 @@ namespace GOTHIC_ENGINE
 		void PrintMarkers();
 		void PrintList();
 		void PrintSearchBar();
+		std::vector<PrintItem*>& GetCurrentVectorAll();
+		std::vector<PrintItemUnique*>& GetCurrentVectorUniques();
 		zSTRING GetFilterName();
 	};
 

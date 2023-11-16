@@ -2,6 +2,161 @@
 // Union SOURCE file
 
 namespace GOTHIC_ENGINE {
+	bool zCVob::IsValidItem_Union()
+	{
+		if (this->GetVobType() != zVOB_TYPE_ITEM)
+		{
+			return false;
+		}
+
+		auto item = zDYNAMIC_CAST<oCItem>(this);
+
+		if (item->instanz < 0)
+		{
+			return false;
+		}
+
+		if (item->flags & ITM_FLAG_NFOCUS)
+		{
+			return false;
+		}
+
+		if (!item->GetHomeWorld())
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	bool zCVob::IsValidNpc_Union()
+	{
+		if (this->GetVobType() != zVOB_TYPE_NSC)
+		{
+			return false;
+		}
+
+		auto npc = zDYNAMIC_CAST<oCNpc>(this);
+
+		if (npc->instanz < 0)
+		{
+			return false;
+		}
+
+		if (npc == player)
+		{
+			return false;
+		}
+
+		if (npc->name->IsEmpty())
+		{
+			return false;
+		}
+
+		if (npc->attribute[NPC_ATR_HITPOINTS] <= 0 && !npc->CanBeLooted_Union())
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	zVEC3 zCVob::GetRealPosition_Union()
+	{
+		zVEC3 vobPos = { 0.0f, 0.0f, 0.0f };
+
+		if (this->GetVobType() == zVOB_TYPE_ITEM)
+		{
+			vobPos = this->GetPositionWorld();
+		}
+		else if (this->GetVobType() == zVOB_TYPE_NSC)
+		{
+			auto npc = zDYNAMIC_CAST<oCNpc>(this);
+
+			if (npc->GetHomeWorld())
+			{
+				vobPos = npc->GetPositionWorld();
+			}
+			else
+			{
+				if (npc->state.rtnNow && !npc->state.rtnNow->wpname.IsEmpty() && !npc->state.rtnNow->wpname.CompareI("TOT"))
+				{
+					if (auto wp = ogame->GetGameWorld()->wayNet->GetWaypoint(npc->state.rtnNow->wpname))
+					{
+						vobPos = wp->GetPositionWorld();
+					}
+				}
+				else
+				{
+					vobPos = npc->state.aiStatePosition;
+				}
+			}
+		}
+
+		return vobPos;
+	}
+
+	bool oCNpc::CanBeLooted_Union()
+	{
+#if ENGINE <= Engine_G1A
+		for (int i = INV_NONE; i < INV_MAX; i++)
+		{
+			if (!this->inventory2.packString[i].IsEmpty())
+			{
+				return true;
+			}
+		}
+#else
+		if (!this->inventory2.packString.IsEmpty())
+		{
+			return true;
+		}
+#endif
+
+#if ENGINE <= Engine_G1A
+		for (int i = INV_NONE; i < INV_MAX; i++)
+		{
+			for (int x = 0; x < this->inventory2.GetNumItemsInCategory(i); x++)
+			{
+				auto item = this->GetItem(i, x);
+
+				if (item->instanz < 0)
+				{
+					continue;
+				}
+
+				if (item->HasFlag(ITM_CAT_ARMOR))
+				{
+					continue;
+				}
+
+				return true;
+			}
+		}
+#else
+		auto npcInv = this->inventory2.GetContents()->next;
+		while (npcInv)
+		{
+			auto item = npcInv->GetData();
+			npcInv = npcInv->next;
+
+			if (item->instanz < 0)
+			{
+				continue;
+			}
+
+			if (item->HasFlag(ITM_FLAG_ACTIVE))
+			{
+				continue;
+			}
+
+			return true;
+		}
+#endif
+
+		return false;
+	}
+
 	ItemMap::ItemMap()
 	{
 		this->printViewMarker = new zCView(0, 0, screen->anx(this->imgSize), screen->any(this->imgSize));
@@ -48,7 +203,7 @@ namespace GOTHIC_ENGINE {
 
 	zSTRING ItemMap::GetFilterName()
 	{
-		switch (static_cast<ItemMapFilter>(this->filter))
+		switch (this->filter)
 		{
 		case ItemMapFilter::ARMOR:
 			return "Armor";
@@ -77,60 +232,107 @@ namespace GOTHIC_ENGINE {
 		return "Unknown";
 	}
 
-	zCOLOR ItemMap::GetColor(oCItem* item)
+	zCOLOR ItemMap::GetColor(zCVob* vob)
 	{
-		switch (item->mainflag)
+		if (vob->GetVobType() == zVOB_TYPE_ITEM)
 		{
-		case ITM_CAT_NF:
-		case ITM_CAT_FF:
-		case ITM_CAT_MUN:
-			return GFX_RED;
-		case ITM_CAT_ARMOR:
-			return GFX_BROWN;
-		case ITM_CAT_FOOD:
-			if (item->GetInstanceName().StartWith("ITPL_") || item->GetInstanceName().HasWordI("PLANT"))
+			auto item = zDYNAMIC_CAST<oCItem>(vob);
+
+			switch (item->mainflag)
+			{
+			case ITM_CAT_NF:
+			case ITM_CAT_FF:
+			case ITM_CAT_MUN:
+				return GFX_RED;
+			case ITM_CAT_ARMOR:
+				return GFX_BROWN;
+			case ITM_CAT_FOOD:
+				if (item->GetInstanceName().StartWith("ITPL_") || item->GetInstanceName().HasWordI("PLANT"))
+				{
+					return GFX_GREEN;
+				}
+				return GFX_ORANGE;
+			case ITM_CAT_DOCS:
+				return GFX_YELLOW;
+			case ITM_CAT_POTION:
+				return GFX_PINK;
+			case ITM_CAT_RUNE:
+				return GFX_LBLUE;
+			case ITM_CAT_MAGIC:
+				return GFX_PURPLE;
+			}
+		}
+		else if (vob->GetVobType() == zVOB_TYPE_NSC)
+		{
+			auto npc = zDYNAMIC_CAST<oCNpc>(vob);
+
+			if (npc->attribute[NPC_ATR_HITPOINTS] <= 0 && npc->CanBeLooted_Union())
+			{
+				return GFX_BLACK;
+			}
+
+			int attitude = npc->GetPermAttitude(player);
+			if (npc->IsHostile(player) || attitude == NPC_ATT_HOSTILE)
+			{
+				if (npc->guild < NPC_GIL_HUMANS)
+				{
+					return GFX_PURPLE;
+				}
+				else
+				{
+					return GFX_RED;
+				}
+			}
+
+			if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
+			{
+				return GFX_ORANGE;
+			}
+
+			if (npc->IsFriendly(player) || npc->npcType == NPCTYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
 			{
 				return GFX_GREEN;
 			}
-			return GFX_ORANGE;
-		case ITM_CAT_DOCS:
-			return GFX_YELLOW;
-		case ITM_CAT_POTION:
-			return GFX_PINK;
-		case ITM_CAT_RUNE:
-			return GFX_LBLUE;
-		case ITM_CAT_MAGIC:
-			return GFX_PURPLE;
+
+			if (ogame->GetGuilds()->GetAttitude(npc->guild, player->guild) == NPC_ATT_FRIENDLY)
+			{
+				return zCOLOR(175, 255, 175);
+			}
 		}
 
 		return GFX_COLDGREY;
 	}
 
-	ItemMapFilter ItemMap::GetFilterFlag(oCItem* item)
+	ItemMapFilter ItemMap::GetFilterFlag(zCVob* vob)
 	{
-		switch (item->mainflag)
+		if (vob->GetVobType() == zVOB_TYPE_ITEM)
 		{
-		case ITM_CAT_NF:
-			return ItemMapFilter::MELEE;
-		case ITM_CAT_FF:
-		case ITM_CAT_MUN:
-			return ItemMapFilter::RANGED;
-		case ITM_CAT_ARMOR:
-			return ItemMapFilter::ARMOR;
-		case ITM_CAT_FOOD:
-			if (item->GetInstanceName().StartWith("ITPL_") || item->GetInstanceName().HasWordI("PLANT"))
+			auto item = zDYNAMIC_CAST<oCItem>(vob);
+
+			switch (item->mainflag)
 			{
-				return ItemMapFilter::PLANT;
+			case ITM_CAT_NF:
+				return ItemMapFilter::MELEE;
+			case ITM_CAT_FF:
+			case ITM_CAT_MUN:
+				return ItemMapFilter::RANGED;
+			case ITM_CAT_ARMOR:
+				return ItemMapFilter::ARMOR;
+			case ITM_CAT_FOOD:
+				if (item->GetInstanceName().StartWith("ITPL_") || item->GetInstanceName().HasWordI("PLANT"))
+				{
+					return ItemMapFilter::PLANT;
+				}
+				return ItemMapFilter::FOOD;
+			case ITM_CAT_DOCS:
+				return ItemMapFilter::DOC;
+			case ITM_CAT_POTION:
+				return ItemMapFilter::POTION;
+			case ITM_CAT_RUNE:
+				return ItemMapFilter::SPELL;
+			case ITM_CAT_MAGIC:
+				return ItemMapFilter::MAGICITEM;
 			}
-			return ItemMapFilter::FOOD;
-		case ITM_CAT_DOCS:
-			return ItemMapFilter::DOC;
-		case ITM_CAT_POTION:
-			return ItemMapFilter::POTION;
-		case ITM_CAT_RUNE:
-			return ItemMapFilter::SPELL;
-		case ITM_CAT_MAGIC:
-			return ItemMapFilter::MAGICITEM;
 		}
 
 		return ItemMapFilter::NONE;
@@ -172,11 +374,11 @@ namespace GOTHIC_ENGINE {
 	{
 		std::sort(this->vecItemsUniqueAll.begin(), this->vecItemsUniqueAll.end(), [](const auto& left, const auto& right) {
 			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
-		});
+			});
 
 		std::sort(this->vecNpcsUniqueAll.begin(), this->vecNpcsUniqueAll.end(), [](const auto& left, const auto& right) {
 			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
-		});
+			});
 	}
 
 	void ItemMap::PrintMarkers()
@@ -263,12 +465,12 @@ namespace GOTHIC_ENGINE {
 		switch (mode)
 		{
 		case ItemMapMode::ITEMS:
-			if (this->filter > 0)
+			if (this->filter > ItemMapFilter::PLANT)
 			{
 				zSTRING less = "<<";
 				this->printViewSearchBar->Print(0, y, less);
 			}
-			if (static_cast<ItemMapFilter>(this->filter) < ItemMapFilter::ALL)
+			if (this->filter < ItemMapFilter::ALL)
 			{
 				zSTRING more = ">>";
 				this->printViewSearchBar->Print(8192 - this->printViewSearchBar->FontSize(more), y, more);
@@ -326,7 +528,7 @@ namespace GOTHIC_ENGINE {
 		this->vecItemsAll.push_back(printItem);
 	}
 
-	void ItemMap::AddPrintItemUnique(int instanz, const zSTRING& name, int amount, ItemMapFilter flag)
+	void ItemMap::AddPrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilter flag)
 	{
 		for (auto it : vecItemsUniqueAll)
 		{
@@ -335,7 +537,7 @@ namespace GOTHIC_ENGINE {
 				return;
 			}
 		}
-		this->vecItemsUniqueAll.push_back(new PrintItemUnique(instanz, name, amount, flag));
+		this->vecItemsUniqueAll.push_back(new PrintItemUnique(instanz, name, instancename, amount, flag));
 	}
 
 	void ItemMap::AddPrintNpc(PrintItem* printNpc)
@@ -352,7 +554,33 @@ namespace GOTHIC_ENGINE {
 				return;
 			}
 		}
-		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(npc->instanz, npc->name, 1));
+		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(npc->instanz, npc->name, npc->GetInstanceName(), 1));
+	}
+
+	std::vector<PrintItem*>& ItemMap::GetCurrentVectorAll()
+	{
+		switch (this->mode)
+		{
+		case ItemMapMode::ITEMS:
+			return vecItemsAll;
+		case ItemMapMode::NPCS:
+			return vecNpcsAll;
+		}
+
+		return std::vector<PrintItem*>{};
+	}
+
+	std::vector<PrintItemUnique*>& ItemMap::GetCurrentVectorUniques()
+	{
+		switch (this->mode)
+		{
+		case ItemMapMode::ITEMS:
+			return vecItemsUniqueAll;
+		case ItemMapMode::NPCS:
+			return vecNpcsUniqueAll;
+		}
+
+		return std::vector<PrintItemUnique*>{};
 	}
 
 	void ItemMap::RefreshLists()
@@ -360,36 +588,21 @@ namespace GOTHIC_ENGINE {
 		vecPrintItemsCurrent.clear();
 		vecPrintItemsUniqueCurrent.clear();
 
-		ItemMapFilter filter = static_cast<ItemMapFilter>(itemMap->filter);
-		ItemMapMode mode = static_cast<ItemMapMode>(itemMap->mode);
-
-		std::vector<PrintItem*>* vecAll = nullptr;
-		std::vector<PrintItemUnique*>* vecUniqueAll = nullptr;
-
-		if (mode == ItemMapMode::ITEMS)
-		{
-			vecAll = &vecItemsAll;
-			vecUniqueAll = &vecItemsUniqueAll;
-		}
-		else if (mode == ItemMapMode::NPCS)
-		{
-			vecAll = &vecNpcsAll;
-			vecUniqueAll = &vecNpcsUniqueAll;
-		}
-
-		if (!vecAll && !vecUniqueAll)
+		if (this->mode != ItemMapMode::ITEMS && this->mode != ItemMapMode::NPCS)
 		{
 			return;
 		}
 
-		for (auto printItem : *vecAll)
+		auto search = this->search.WToA();
+
+		for (auto printItem : this->GetCurrentVectorAll())
 		{
-			if (!this->search.IsEmpty() && !printItem->name.HasWordI(this->search.WToA()))
+			if (!search.IsEmpty() && !printItem->name.HasWordI(search) && !printItem->instancename.HasWordI(search))
 			{
 				continue;
 			}
 
-			if (mode == ItemMapMode::ITEMS && filter != ItemMapFilter::ALL && printItem->flag != static_cast<ItemMapFilter>(itemMap->filter))
+			if (mode == ItemMapMode::ITEMS && this->filter != ItemMapFilter::ALL && printItem->flag != this->filter)
 			{
 				continue;
 			}
@@ -397,14 +610,14 @@ namespace GOTHIC_ENGINE {
 			vecPrintItemsCurrent.push_back(printItem);
 		}
 
-		for (auto printItemUnique : *vecUniqueAll)
+		for (auto printItemUnique : this->GetCurrentVectorUniques())
 		{
-			if (!this->search.IsEmpty() && !printItemUnique->name.HasWordI(this->search.WToA()))
+			if (!search.IsEmpty() && !printItemUnique->name.HasWordI(search) && !printItemUnique->instancename.HasWordI(search))
 			{
 				continue;
 			}
 
-			if (mode == ItemMapMode::ITEMS && filter != ItemMapFilter::ALL && printItemUnique->flag != static_cast<ItemMapFilter>(itemMap->filter))
+			if (mode == ItemMapMode::ITEMS && this->filter != ItemMapFilter::ALL && printItemUnique->flag != this->filter)
 			{
 				continue;
 			}
