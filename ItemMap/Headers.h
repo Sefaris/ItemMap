@@ -5,6 +5,7 @@
 #include <random>
 #include <chrono>
 #include <vector>
+#include <map>
 #pragma region Includes
 #include "ItemMap.h"
 #include "Plugin.h"

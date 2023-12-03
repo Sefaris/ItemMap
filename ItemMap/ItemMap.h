@@ -3,6 +3,15 @@
 
 namespace GOTHIC_ENGINE
 {
+#define PI 3.1415926535897932384626 
+
+	enum class HookType : int
+	{
+		Normal,
+		CoM,
+		NoHook
+	};
+
 	enum class ItemMapMode : int
 	{
 		ITEMS,
@@ -56,9 +65,10 @@ namespace GOTHIC_ENGINE
 		ItemMap();
 		~ItemMap();
 		void Print();
-		bool OnScreen = false;
-		bool ShowMarkers = true;
-		bool ShowList = false;
+		bool OnScreen;
+		bool ShowMarkers;
+		bool ShowList;
+		HookType Hook;
 		void ClearPrintItems();
 		void AddPrintItem(PrintItem* printItem);
 		void AddPrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilter flag);
@@ -66,16 +76,28 @@ namespace GOTHIC_ENGINE
 		void AddPrintNpcUnique(oCNpc* npc);
 		void SortUniques();
 		void RefreshLists();
+		void UpdateSettings();
+		void ResizeMarkers(int size);
+		void ResizeList(int size);
+		int HandleInput(int key = -1);
+		void Close();
+		void InitMap(HookType hook, int rotate = 0);
+		int listWidth;
+		int imgSize;
 		int markX;
 		int markY;
-		zVEC4 margins;
 		size_t listPage;
 		size_t listPageMax;
 		wstring search;
-		ItemMapMode mode = ItemMapMode::ITEMS;
-		ItemMapFilter filter = ItemMapFilter::PLANT;
+		ItemMapMode mode;
+		ItemMapFilter filter;
 		zCOLOR GetColor(zCVob* vob);
 		ItemMapFilter GetFilterFlag(zCVob* vob);
+		zVEC4 mapCoords;
+		zVEC4 worldCoords;
+
+		//For CoM ikarus maps
+		void CoMHack();
 
 	private:
 		zCView* printViewMarker;
@@ -90,14 +112,20 @@ namespace GOTHIC_ENGINE
 		std::vector<PrintItem*> vecPrintItemsCurrent;
 		std::vector<PrintItemUnique*> vecPrintItemsUniqueCurrent;
 
-		int imgSize = 10;
-		int listWidth = 2000;
 		void PrintMarkers();
 		void PrintList();
 		void PrintSearchBar();
+		std::map<ItemMapFilter, zCOLOR> colorsItems;
+		std::map<std::string, zCOLOR> colorsNpcs;
 		std::vector<PrintItem*>& GetCurrentVectorAll();
 		std::vector<PrintItemUnique*>& GetCurrentVectorUniques();
 		zSTRING GetFilterName();
+		zCOLOR HexToColor(const zSTRING& hexstring);
+
+		//For CoM ikarus maps
+		int indexSpriteMapHandle = 0;
+		int indexSpriteCursorHandle = 0;
+		std::map<unsigned int, std::chrono::high_resolution_clock::time_point> keyPressedTS;
 	};
 
 	std::unique_ptr<ItemMap> itemMap;

@@ -15,12 +15,15 @@ namespace GOTHIC_ENGINE {
 	}
 
 	void Game_PreLoop() {
+		itemMap->CoMHack();
 	}
 
 	void Game_Loop() {
+		
 	}
 
 	void Game_PostLoop() {
+		itemMap->Print();
 	}
 
 	void Game_MenuLoop() {
@@ -81,6 +84,7 @@ namespace GOTHIC_ENGINE {
 	}
 
 	void Game_ApplyOptions() {
+		itemMap->UpdateSettings();
 	}
 
 	/*

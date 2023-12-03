@@ -217,6 +217,9 @@
     <Filter Include="Plugin\Workspace\ItemMap">
       <UniqueIdentifier>{2d576397-e13d-46a4-b0be-4c57f16fb715}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Plugin\Workspace\Utils">
+      <UniqueIdentifier>{a2bb4414-791d-4399-8be8-b3e550b74a50}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Interface.cpp">
@@ -2789,6 +2792,9 @@
     </ClInclude>
     <ClInclude Include="ItemMap_Hooks.cpp">
       <Filter>Plugin\Workspace\ItemMap</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.cpp">
+      <Filter>Plugin\Workspace\Utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

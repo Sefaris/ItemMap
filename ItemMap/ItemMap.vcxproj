@@ -921,6 +921,10 @@ $(ALLUSERSPROFILE)\Union\SDK\Union\v1.0m\Build\incver.exe $(ProjectDir)</Command
     <ClInclude Include="resource.h" />
     <ClInclude Include="Sources.h" />
     <ClInclude Include="UnionAfx.h" />
+    <ClInclude Include="Utils.cpp">
+      <SubType>
+      </SubType>
+    </ClInclude>
     <ClInclude Include="ZenGin\Gothic_II_Addon\API\oAiHuman.h" />
     <ClInclude Include="ZenGin\Gothic_II_Addon\API\oAiShoot.h" />
     <ClInclude Include="ZenGin\Gothic_II_Addon\API\oAniCtrl.h" />
