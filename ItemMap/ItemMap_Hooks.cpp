@@ -2,23 +2,6 @@
 // Union SOURCE file
 
 namespace GOTHIC_ENGINE {
-	HOOK Ivk_oCDocumentManager_HandleEvent PATCH(&oCDocumentManager::HandleEvent, &oCDocumentManager::HandleEvent_Union);
-	int oCDocumentManager::HandleEvent_Union(int key)
-	{
-		if (itemMap->OnScreen && itemMap->Hook == HookType::Normal)
-		{
-			return THISCALL(Ivk_oCDocumentManager_HandleEvent)(itemMap->HandleInput(key));
-		}
-
-		return THISCALL(Ivk_oCDocumentManager_HandleEvent)(key);
-	}
-
-	HOOK Ivk_zCViewDraw_Draw PATCH(&zCViewDraw::Draw, &zCViewDraw::Draw_Union);
-	void __fastcall zCViewDraw::Draw_Union()
-	{
-		THISCALL(Ivk_zCViewDraw_Draw)();
-	}
-
 	HOOK Ivk_oCDocumentManager_Show PATCH(&oCDocumentManager::Show, &oCDocumentManager::Show_Union);
 	void __fastcall oCDocumentManager::Show_Union(int id)
 	{

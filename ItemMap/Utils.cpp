@@ -156,4 +156,12 @@ namespace GOTHIC_ENGINE {
 
 		return false;
 	}
+
+	int oCNpc::GetAivar(zSTRING aivar) {
+		auto sym = parser->GetSymbol(aivar);
+		if (!sym)
+			return 0;
+
+		return this->aiscriptvars[sym->single_intdata];
+	}
 }

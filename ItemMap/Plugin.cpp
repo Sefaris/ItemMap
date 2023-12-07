@@ -15,11 +15,11 @@ namespace GOTHIC_ENGINE {
 	}
 
 	void Game_PreLoop() {
-		itemMap->CoMHack();
+		itemMap->HandleInput();
 	}
 
 	void Game_Loop() {
-		
+		itemMap->CoMHack();
 	}
 
 	void Game_PostLoop() {

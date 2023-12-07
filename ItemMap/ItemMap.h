@@ -3,8 +3,6 @@
 
 namespace GOTHIC_ENGINE
 {
-#define PI 3.1415926535897932384626 
-
 	enum class HookType : int
 	{
 		Normal,
@@ -31,6 +29,65 @@ namespace GOTHIC_ENGINE
 		FOOD,
 		NONE,
 		ALL
+	};
+	static constexpr auto ColorsItemsMax = static_cast<size_t>(ItemMapFilter::ALL);
+
+	string FilterNames[ColorsItemsMax + 1] = {
+		"Plants",
+		"Melee",
+		"Ranged",
+		"Armors",
+		"Docs",
+		"Spells",
+		"MagicItems",
+		"Potions",
+		"Food",
+		"None",
+		"All"
+	};
+
+	string DefaultColorsItems[ColorsItemsMax] = {
+		"#00FF00",
+		"#FF0000",
+		"#FF0000",
+		"#800080",
+		"#FFFF7F",
+		"#0080FF",
+		"#FF00FF",
+		"#00FFFF",
+		"#FF8000",
+		"#808080"
+	};
+
+	enum class ItemMapFilterNpcs : int
+	{
+		DEAD,
+		HOSTILEHUMAN,
+		HOSTILEMONSTER,
+		ANGRY,
+		FRIENDLY,
+		PARTY,
+		ALL
+	};
+	static constexpr auto ColorsNpcsMax = static_cast<size_t>(ItemMapFilterNpcs::ALL);
+
+	string FilterNpcsNames[ColorsNpcsMax + 1] = {
+		"Dead",
+		"HostileHuman",
+		"HostileMonster",
+		"Angry",
+		"Friendly",
+		"Party",
+		"All"
+	};
+
+	string DefaultColorsNpcs[ColorsNpcsMax] = {
+		"#000000",
+		"#C800C8",
+		"#FF0000",
+		"#FF8000",
+		"#00FF00",
+		"#AFFFAF"
 	};
 
 	struct PrintItem
@@ -65,10 +122,6 @@ namespace GOTHIC_ENGINE
 		ItemMap();
 		~ItemMap();
 		void Print();
-		bool OnScreen;
-		bool ShowMarkers;
-		bool ShowList;
-		HookType Hook;
 		void ClearPrintItems();
 		void AddPrintItem(PrintItem* printItem);
 		void AddPrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilter flag);
@@ -79,9 +132,13 @@ namespace GOTHIC_ENGINE
 		void UpdateSettings();
 		void ResizeMarkers(int size);
 		void ResizeList(int size);
-		int HandleInput(int key = -1);
+		void HandleInput();
 		void Close();
 		void InitMap(HookType hook, int rotate = 0);
+		zCOLOR GetColor(zCVob* vob);
+		ItemMapFilter GetFilterFlag(zCVob* vob);
+		HookType Hook;
+		bool OnScreen;
 		int listWidth;
 		int imgSize;
 		int markX;
@@ -91,8 +148,6 @@ namespace GOTHIC_ENGINE
 		wstring search;
 		ItemMapMode mode;
 		ItemMapFilter filter;
-		zCOLOR GetColor(zCVob* vob);
-		ItemMapFilter GetFilterFlag(zCVob* vob);
 		zVEC4 mapCoords;
 		zVEC4 worldCoords;
 
@@ -100,6 +155,14 @@ namespace GOTHIC_ENGINE
 		void CoMHack();
 
 	private:
+		void PrintMarkers();
+		void PrintList();
+		void PrintSearchBar();
+		std::vector<PrintItem*>& GetCurrentVectorAll();
+		std::vector<PrintItemUnique*>& GetCurrentVectorUniques();
+		zSTRING GetFilterName();
+		zCOLOR HexToColor(const zSTRING& hexstring);
+
 		zCView* printViewMarker;
 		zCView* printViewList;
 		zCView* printViewSearchBar;
@@ -112,20 +175,18 @@ namespace GOTHIC_ENGINE
 		std::vector<PrintItem*> vecPrintItemsCurrent;
 		std::vector<PrintItemUnique*> vecPrintItemsUniqueCurrent;
 
-		void PrintMarkers();
-		void PrintList();
-		void PrintSearchBar();
-		std::map<ItemMapFilter, zCOLOR> colorsItems;
-		std::map<std::string, zCOLOR> colorsNpcs;
-		std::vector<PrintItem*>& GetCurrentVectorAll();
-		std::vector<PrintItemUnique*>& GetCurrentVectorUniques();
-		zSTRING GetFilterName();
-		zCOLOR HexToColor(const zSTRING& hexstring);
+		zCOLOR colorsItems[ColorsItemsMax];
+		zCOLOR colorsNpcs[ColorsNpcsMax];
+		bool ShowMarkers;
+		bool ShowList;
+		bool ShowSearchBar;
+		bool SearchBarActive;
+
+		int NPC_TYPE_FRIEND;
 
 		//For CoM ikarus maps
 		int indexSpriteMapHandle = 0;
 		int indexSpriteCursorHandle = 0;
-		std::map<unsigned int, std::chrono::high_resolution_clock::time_point> keyPressedTS;
 	};
 
 	std::unique_ptr<ItemMap> itemMap;

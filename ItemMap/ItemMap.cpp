@@ -27,6 +27,8 @@ namespace GOTHIC_ENGINE {
 		this->Hook = HookType::NoHook;
 		this->ShowMarkers = true;
 		this->ShowList = false;
+		this->ShowSearchBar = true;
+		this->SearchBarActive = false;
 
 		this->search = L"";
 
@@ -34,6 +36,9 @@ namespace GOTHIC_ENGINE {
 		this->indexSpriteCursorHandle = parser->GetIndex("SPRITEMAP_SPRITECURSORHNDL");
 
 		this->UpdateSettings();
+
+		zCPar_Symbol* sym = parser->GetSymbol("NPCTYPE_FRIEND");
+		this->NPC_TYPE_FRIEND = (sym) ? sym->single_intdata : Invalid;
 	}
 
 	ItemMap::~ItemMap()
@@ -58,59 +63,32 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::ResizeMarkers(int size)
 	{
-		if (size < 5)
-		{
-			size = 5;
-		}
-
-		this->imgSize = size;
+		this->imgSize = std::clamp(size, 5, 50);
 		this->printViewMarker->SetSize(screen->anx(this->imgSize), screen->any(this->imgSize));
 	}
 
 	void ItemMap::ResizeList(int size)
 	{
-		this->listWidth = this->listWidth + size;
-
-		if (this->listWidth < 1)
-		{
-			this->listWidth = 1;
-		}
-
-		if (this->listWidth > 100)
-		{
-			this->listWidth = 100;
-		}
+		this->listWidth = std::clamp((this->listWidth + size), 1, 100);
 	}
 
 	void ItemMap::UpdateSettings()
 	{
 		this->ResizeMarkers(zoptions->ReadInt("ItemMap", "IconSize", 10));
-		this->listWidth = zoptions->ReadInt("ItemMap", "ListWidth", 25);
-		if (this->listWidth > 100 || this->listWidth < 0)
-		{
-			this->listWidth = 25;
-		}
+		this->listWidth = std::clamp(zoptions->ReadInt("ItemMap", "ListWidth", 25), 1, 100);
 
 		this->mode = static_cast<ItemMapMode>(zoptions->ReadInt("ItemMap", "PrevMode", 0));
 		this->filter = static_cast<ItemMapFilter>(zoptions->ReadInt("ItemMap", "PrevFilter", 0));
 
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::PLANT, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemPlants", "#00FF00"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::MELEE, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemMelee", "#FF0000"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::RANGED, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemRanged", "#FF0000"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::ARMOR, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemArmor", "#800080"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::DOC, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemDocs", "#FFFF7F"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::SPELL, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemSpells", "#0080FF"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::MAGICITEM, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemMagic", "#FF00FF"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::POTION, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemPotions", "#00FFFF"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::FOOD, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemFood", "#FF8000"))));
-		this->colorsItems.insert(std::make_pair(ItemMapFilter::NONE, this->HexToColor(zoptions->ReadString("ItemMap", "ColorItemMisc", "#808080"))));
+		for (size_t i = 0; i < ColorsItemsMax; i++)
+		{
+			this->colorsItems[i] = this->HexToColor(zoptions->ReadString("ItemMap", zSTRING{ "ColorItem" } + zSTRING{ FilterNames[i] }, DefaultColorsItems[i]));
+		}
 
-		this->colorsNpcs.insert(std::make_pair("dead", this->HexToColor(zoptions->ReadString("ItemMap", "ColorNpcDead", "#000000"))));
-		this->colorsNpcs.insert(std::make_pair("hostilehuman", this->HexToColor(zoptions->ReadString("ItemMap", "ColorNpcHostileHuman", "#C800C8"))));
-		this->colorsNpcs.insert(std::make_pair("hostilemonster", this->HexToColor(zoptions->ReadString("ItemMap", "ColorNpcHostileMonster", "#FF0000"))));
-		this->colorsNpcs.insert(std::make_pair("angry", this->HexToColor(zoptions->ReadString("ItemMap", "ColorNpcAngry", "#FF8000"))));
-		this->colorsNpcs.insert(std::make_pair("friendly", this->HexToColor(zoptions->ReadString("ItemMap", "ColorNpcFriendly", "#00FF00"))));
-		this->colorsNpcs.insert(std::make_pair("guildfriendly", this->HexToColor(zoptions->ReadString("ItemMap", "ColorNpcGuildFriendly", "#AFFFAF"))));
+		for (size_t i = 0; i < ColorsNpcsMax; i++)
+		{
+			this->colorsNpcs[i] = this->HexToColor(zoptions->ReadString("ItemMap", zSTRING{ "ColorNpc" } + zSTRING{ FilterNpcsNames[i] }, DefaultColorsNpcs[i]));
+		}
 	}
 
 	zCOLOR ItemMap::HexToColor(const zSTRING& hexstring)
@@ -126,33 +104,14 @@ namespace GOTHIC_ENGINE {
 
 	zSTRING ItemMap::GetFilterName()
 	{
-		switch (this->filter)
+		auto filter = static_cast<int>(this->filter);
+
+		if (filter < 0 || filter > ColorsItemsMax + 1)
 		{
-		case ItemMapFilter::ARMOR:
-			return "Armor";
-		case ItemMapFilter::PLANT:
-			return "Plants";
-		case ItemMapFilter::MELEE:
-			return "Melee";
-		case ItemMapFilter::RANGED:
-			return "Ranged";
-		case ItemMapFilter::DOC:
-			return "Docs";
-		case ItemMapFilter::SPELL:
-			return "Spells";
-		case ItemMapFilter::MAGICITEM:
-			return "Magic";
-		case ItemMapFilter::POTION:
-			return "Potions";
-		case ItemMapFilter::FOOD:
-			return "Food";
-		case ItemMapFilter::NONE:
-			return "None";
-		case ItemMapFilter::ALL:
-			return "All";
+			return "Unknown";
 		}
 
-		return "Unknown";
+		return FilterNames[filter];
 	}
 
 	zCOLOR ItemMap::GetColor(zCVob* vob)
@@ -164,28 +123,28 @@ namespace GOTHIC_ENGINE {
 			switch (item->mainflag)
 			{
 			case ITM_CAT_NF:
-				return colorsItems.at(ItemMapFilter::MELEE);
+				return colorsItems[static_cast<int>(ItemMapFilter::MELEE)];
 			case ITM_CAT_FF:
 			case ITM_CAT_MUN:
-				return colorsItems.at(ItemMapFilter::RANGED);
+				return colorsItems[static_cast<int>(ItemMapFilter::RANGED)];
 			case ITM_CAT_ARMOR:
-				return colorsItems.at(ItemMapFilter::ARMOR);
+				return colorsItems[static_cast<int>(ItemMapFilter::ARMOR)];
 			case ITM_CAT_FOOD:
 				if (item->GetInstanceName().StartWith("ITPL_") || item->GetInstanceName().HasWordI("PLANT"))
 				{
-					return colorsItems.at(ItemMapFilter::PLANT);
+					return colorsItems[static_cast<int>(ItemMapFilter::PLANT)];
 				}
-				return colorsItems.at(ItemMapFilter::FOOD);
+				return colorsItems[static_cast<int>(ItemMapFilter::FOOD)];
 			case ITM_CAT_DOCS:
-				return colorsItems.at(ItemMapFilter::DOC);
+				return colorsItems[static_cast<int>(ItemMapFilter::DOC)];
 			case ITM_CAT_POTION:
-				return colorsItems.at(ItemMapFilter::POTION);
+				return colorsItems[static_cast<int>(ItemMapFilter::POTION)];
 			case ITM_CAT_RUNE:
-				return colorsItems.at(ItemMapFilter::SPELL);
+				return colorsItems[static_cast<int>(ItemMapFilter::SPELL)];
 			case ITM_CAT_MAGIC:
-				return colorsItems.at(ItemMapFilter::MAGICITEM);
+				return colorsItems[static_cast<int>(ItemMapFilter::MAGICITEM)];
 			case ITM_CAT_NONE:
-				return colorsItems.at(ItemMapFilter::NONE);
+				return colorsItems[static_cast<int>(ItemMapFilter::NONE)];
 			}
 		}
 		else if (vob->GetVobType() == zVOB_TYPE_NSC)
@@ -194,7 +153,7 @@ namespace GOTHIC_ENGINE {
 
 			if (npc->attribute[NPC_ATR_HITPOINTS] <= 0 && npc->CanBeLooted_Union())
 			{
-				return colorsNpcs.at("dead");
+				return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::DEAD)];
 			}
 
 			int attitude = npc->GetPermAttitude(player);
@@ -202,27 +161,27 @@ namespace GOTHIC_ENGINE {
 			{
 				if (npc->guild < NPC_GIL_HUMANS)
 				{
-					return colorsNpcs.at("hostilehuman");
+					return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::HOSTILEHUMAN)];
 				}
 				else
 				{
-					return colorsNpcs.at("hostilemonster");
+					return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::HOSTILEMONSTER)];
 				}
 			}
 
 			if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
 			{
-				return colorsNpcs.at("angry");
+				return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::ANGRY)];
 			}
 
-			if (npc->IsFriendly(player) || npc->npcType == NPCTYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
+			if (npc->GetAivar("AIV_PARTYMEMBER"))
 			{
-				return colorsNpcs.at("friendly");
+				return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::PARTY)];
 			}
 
-			if (ogame->GetGuilds()->GetAttitude(npc->guild, player->guild) == NPC_ATT_FRIENDLY)
+			if (npc->IsFriendly(player) || npc->npcType == this->NPC_TYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
 			{
-				return colorsNpcs.at("guildfriendly");
+				return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::FRIENDLY)];
 			}
 		}
 
@@ -368,7 +327,7 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::PrintSearchBar()
 	{
-		if (!this->ShowMarkers && !this->ShowList)
+		if (!this->ShowSearchBar)
 		{
 			return;
 		}
@@ -417,16 +376,17 @@ namespace GOTHIC_ENGINE {
 		zSTRING txtSearchTitle = "Search";
 		this->printViewSearchBar->Print(0, fontHeight * y++, txtSearchTitle);
 
-		if (this->search.IsEmpty())
+		if (this->search.IsEmpty() && !this->SearchBarActive)
 		{
-			zSTRING txtSearchPlaceholder = "Type name or instance";
+			zSTRING txtSearchPlaceholder = "Press ENTER to search";
 			this->printViewSearchBar->SetFontColor(GFX_PINK);
 			this->printViewSearchBar->Print(0, fontHeight * y++, txtSearchPlaceholder);
 		}
 		else
 		{
+			auto search = this->search.WToA() + (this->SearchBarActive ? "<" : "");
 			this->printViewSearchBar->SetFontColor(GFX_GREEN);
-			this->printViewSearchBar->Print(0, fontHeight * y++, this->search.WToA());
+			this->printViewSearchBar->Print(0, fontHeight * y++, search);
 		}
 
 		this->printViewSearchBar->Blit();
@@ -562,45 +522,33 @@ namespace GOTHIC_ENGINE {
 		this->worldCoords = { 0, 0, 0, 0 };
 		this->mapCoords = { 0, 0, 0, 0 };
 
+		this->SearchBarActive = false;
+
 		zoptions->WriteInt("ItemMap", "PrevMode", static_cast<int>(this->mode), 0);
 		zoptions->WriteInt("ItemMap", "PrevFilter", static_cast<int>(this->filter), 0);
 		zoptions->WriteInt("ItemMap", "IconSize", this->imgSize, 0);
 		zoptions->WriteInt("ItemMap", "ListWidth", this->listWidth, 0);
 	}
 
-	int ItemMap::HandleInput(int key)
+	void ItemMap::HandleInput()
 	{
+		if (!this->OnScreen)
+		{
+			return;
+		}
+
 		bool shift = (GetKeyState(VK_SHIFT) & 0x8000);
 		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000);
 
 		if (zKeyToggled(KEY_ESCAPE))
 		{
 			this->Close();
-			return key;
+			return;
 		}
 
-		if ((zKeyToggled(KEY_MINUS) || zKeyToggled(KEY_SUBTRACT)) && this->imgSize > 5)
+		if ((zKeyToggled(KEY_RETURN) || zKeyToggled(KEY_NUMPADENTER)) && this->ShowSearchBar)
 		{
-			if (shift)
-			{
-				this->ResizeMarkers(--this->imgSize);
-			}
-			if (ctrl)
-			{
-				this->ResizeList(-1);
-			}
-		}
-
-		if ((zKeyToggled(KEY_ADD) || zKeyToggled(KEY_EQUALS)) && this->imgSize < 25)
-		{
-			if (shift)
-			{
-				this->ResizeMarkers(++this->imgSize);
-			}
-			if (ctrl)
-			{
-				this->ResizeList(1);
-			}
+			this->SearchBarActive = !this->SearchBarActive;
 		}
 
 		if (zKeyToggled(KEY_PGUP) && this->mode < ItemMapMode::NPCS)
@@ -619,28 +567,60 @@ namespace GOTHIC_ENGINE {
 			this->mode = static_cast<ItemMapMode>(--mode);
 		}
 
-		if (zKeyToggled(KEY_UP) && this->listPage > 0 && this->ShowList)
+		if (zKeyToggled(KEY_UP))
 		{
-			this->listPage--;
+			if (ctrl && this->ShowMarkers)
+			{
+				this->ResizeMarkers(++this->imgSize);
+			}
+
+			if (!ctrl && this->listPage > 0 && this->ShowList)
+			{
+				this->listPage--;
+			}
 		}
 
-		if (zKeyToggled(KEY_DOWN) && this->listPage < this->listPageMax && this->ShowList)
+		if (zKeyToggled(KEY_DOWN))
 		{
-			this->listPage++;
+			if (ctrl && this->ShowMarkers)
+			{
+				this->ResizeMarkers(--this->imgSize);
+			}
+
+			if (!ctrl && this->listPage < this->listPageMax && this->ShowList)
+			{
+				this->listPage++;
+			}
 		}
 
-		if (zKeyToggled(KEY_RIGHT) && this->mode == ItemMapMode::ITEMS && this->filter < ItemMapFilter::ALL)
+		if (zKeyToggled(KEY_RIGHT))
 		{
-			int filter = static_cast<int>(this->filter);
-			this->listPage = 0;
-			this->filter = static_cast<ItemMapFilter>(++filter);
+			if (ctrl && this->ShowList)
+			{
+				this->ResizeList(1);
+			}
+
+			if (!ctrl && this->mode == ItemMapMode::ITEMS && this->filter < ItemMapFilter::ALL)
+			{
+				int filter = static_cast<int>(this->filter);
+				this->listPage = 0;
+				this->filter = static_cast<ItemMapFilter>(++filter);
+			}
 		}
 
-		if (zKeyToggled(KEY_LEFT) && this->mode == ItemMapMode::ITEMS && this->filter > ItemMapFilter::PLANT)
+		if (zKeyToggled(KEY_LEFT))
 		{
-			int filter = static_cast<int>(this->filter);
-			this->listPage = 0;
-			this->filter = static_cast<ItemMapFilter>(--filter);
+			if (ctrl && this->ShowList)
+			{
+				this->ResizeList(-1);
+			}
+
+			if (!ctrl && this->mode == ItemMapMode::ITEMS && this->filter > ItemMapFilter::PLANT)
+			{
+				int filter = static_cast<int>(this->filter);
+				this->listPage = 0;
+				this->filter = static_cast<ItemMapFilter>(--filter);
+			}
 		}
 
 		if (zKeyToggled(KEY_END))
@@ -653,7 +633,17 @@ namespace GOTHIC_ENGINE {
 			this->ShowList = !this->ShowList;
 		}
 
-		if (zKeyToggled(KEY_BACKSPACE) && (this->ShowMarkers || this->ShowList))
+		if (zKeyToggled(KEY_DELETE))
+		{
+			this->ShowSearchBar = !this->ShowSearchBar;
+
+			if (!this->ShowSearchBar && this->SearchBarActive)
+			{
+				this->SearchBarActive = false;
+			}
+		}
+
+		if (zKeyToggled(KEY_BACKSPACE) && this->SearchBarActive && this->ShowSearchBar)
 		{
 			if (shift)
 			{
@@ -664,11 +654,8 @@ namespace GOTHIC_ENGINE {
 				this->search = this->search.Copy(0, this->search.Length() - 1);
 			}
 		}
-		else if (zKeyToggled(KEY_SPACE) && (this->ShowMarkers || this->ShowList))
-		{
-			this->search = this->search + L" ";
-		}
-		else if (this->ShowMarkers || this->ShowList)
+
+		if (this->SearchBarActive && this->ShowSearchBar)
 		{
 			BYTE keys[256];
 			memset(keys, 0, sizeof(BYTE) * 256);
@@ -677,32 +664,23 @@ namespace GOTHIC_ENGINE {
 
 			if (GetKeyboardState(keys) != FALSE)
 			{
-				auto now = std::chrono::high_resolution_clock::now();
+				keys[VK_CAPITAL] = (BYTE)GetKeyState(VK_CAPITAL);
+				keys[VK_SHIFT] = (BYTE)GetKeyState(VK_SHIFT);
 
-				for (int i = 0; i < 256; i++)
+				wchar_t buff[] = { 0,0 };
+
+				for (int i = 0; i < MAX_KEYS; i++)
 				{
-					auto scan = MapVirtualKeyExW(i, MAPVK_VK_TO_VSC_EX, keyboardLayout);
-
-					if (scan != 0 && (GetKeyState(scan) & 0x8000) && 
-						(
-							this->Hook == HookType::Normal 
-							|| (this->Hook == HookType::CoM && std::chrono::duration_cast<std::chrono::milliseconds>(now - this->keyPressedTS[scan]) > std::chrono::milliseconds(150))
+					auto scan = MapVirtualKeyExW(i, MAPVK_VSC_TO_VK_EX, keyboardLayout);
+					if (
+						scan != 0
+						&& (zKeyToggled(i))
 						)
-					)
 					{
-						keys[VK_CAPITAL] = (BYTE)GetKeyState(VK_CAPITAL);
-						keys[VK_SHIFT] = (BYTE)GetKeyState(VK_SHIFT);
-
-						wchar_t buff[] = { 0,0 };
-
 						auto numChars = ToUnicodeEx(scan, scan, keys, buff, 2, 0, keyboardLayout);
-						if (numChars == 1 && iswalnum(buff[0]))
+						if (numChars == 1 && iswprint(buff[0]))
 						{
 							this->search = this->search + buff;
-							zinput->ClearKeyBuffer();
-							this->RefreshLists();
-							this->keyPressedTS[scan] = now;
-							return 0;
 						}
 					}
 				}
@@ -712,7 +690,7 @@ namespace GOTHIC_ENGINE {
 		zinput->ClearKeyBuffer();
 		this->RefreshLists();
 
-		return 0;
+		return;
 	}
 
 	void ItemMap::CoMHack()
@@ -732,11 +710,24 @@ namespace GOTHIC_ENGINE {
 				return;
 			}
 
-			int SpriteRotate = parser->GetSymbol("SPRITEMAP_ROTATE90")->single_intdata;
+			zCPar_Symbol* sym = nullptr;
 
-			int SpriteMapPosX = parser->GetSymbol("SPRITEMAP_POSX")->single_intdata;
-			int SpriteMapPosY = parser->GetSymbol("SPRITEMAP_POSY")->single_intdata;
-			int SpriteMapSize = parser->GetSymbol("SPRITEMAP_SIZE")->single_intdata / 2;
+			sym = parser->GetSymbol("SPRITEMAP_ROTATE90");
+			int SpriteRotate = (sym) ? sym->single_intdata : Invalid;
+
+			sym = parser->GetSymbol("SPRITEMAP_POSX");
+			int SpriteMapPosX = (sym) ? sym->single_intdata : Invalid;
+
+			sym = parser->GetSymbol("SPRITEMAP_POSY");
+			int SpriteMapPosY = (sym) ? sym->single_intdata : Invalid;
+
+			sym = parser->GetSymbol("SPRITEMAP_SIZE");
+			int SpriteMapSize = (sym) ? (sym->single_intdata / 2) : Invalid;
+
+			if (SpriteRotate == Invalid || SpriteMapPosX == Invalid || SpriteMapPosY == Invalid || SpriteMapSize == Invalid)
+			{
+				return;
+			}
 
 			int SpriteMapTopX = SpriteMapPosX - SpriteMapSize;
 			int SpriteMapTopY = SpriteMapPosY - SpriteMapSize;
@@ -745,21 +736,24 @@ namespace GOTHIC_ENGINE {
 
 			this->mapCoords = zVEC4(SpriteMapTopX, SpriteMapTopY, SpriteMapBottomX, SpriteMapBottomY);
 
-			auto world = ogame->GetGameWorld();
-			auto worldBox = world->bspTree.bspRoot->bbox3D;
-			this->worldCoords = { 0, 0, 0, 0 };
+			sym = parser->GetSymbol("SPRITEMAP_MINXF");
+			this->worldCoords[0] = (sym) ? sym->single_floatdata : 0.0f;
 
-			this->worldCoords[0] = parser->GetSymbol("SPRITEMAP_MINXF")->single_floatdata;
-			this->worldCoords[1] = parser->GetSymbol("SPRITEMAP_MINYF")->single_floatdata;
-			this->worldCoords[2] = this->worldCoords[0] + parser->GetSymbol("SPRITEMAP_DISTXF")->single_floatdata;
-			this->worldCoords[3] = this->worldCoords[1] + parser->GetSymbol("SPRITEMAP_DISTYF")->single_floatdata;
+			sym = parser->GetSymbol("SPRITEMAP_MINYF");
+			this->worldCoords[1] = (sym) ? sym->single_floatdata : 0.0f;
+
+			sym = parser->GetSymbol("SPRITEMAP_DISTXF");
+			this->worldCoords[2] = (sym) ? (this->worldCoords[0] + sym->single_floatdata) : 0.0f;
+
+			sym = parser->GetSymbol("SPRITEMAP_DISTYF");
+			this->worldCoords[3] = (sym) ? (this->worldCoords[1] + sym->single_floatdata) : 0.0f;
+
+			player->CloseInventory();
+			player->CloseDeadNpc();
+			player->CloseSteal();
+			player->CloseTradeContainer();
 
 			this->InitMap(HookType::CoM, SpriteRotate);
-		}
-
-		if (this->OnScreen && this->Hook == HookType::CoM)
-		{
-			this->HandleInput();
 		}
 	}
 
@@ -793,9 +787,8 @@ namespace GOTHIC_ENGINE {
 		world2map[1] = world2map[1] * -1.0f;
 #endif
 
-		double r = (90 * (PI / 180));
-		float s = sin(r);
-		float c = cos(r);
+		float s = sin(RAD90);
+		float c = cos(RAD90);
 		this->ClearPrintItems();
 		auto listVobs = world->voblist->next;
 		while (listVobs)
