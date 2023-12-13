@@ -15,6 +15,9 @@ namespace GOTHIC_ENGINE {
 		this->printViewSearchBar = new zCView(0, 0, 0, 0);
 		this->printViewSearchBar->InsertBack(textureBackground);
 
+		this->printViewHelp = new zCView(0, 0, 0, 0);
+		this->printViewHelp->InsertBack(textureBackground);
+
 		zSTRING texturePlayerMark = "L.TGA";
 		zCTexture* temp = temp->Load(texturePlayerMark, True);
 		if (temp)
@@ -28,6 +31,7 @@ namespace GOTHIC_ENGINE {
 		this->ShowMarkers = true;
 		this->ShowList = false;
 		this->ShowSearchBar = true;
+		this->ShowHelp = true;
 		this->SearchBarActive = false;
 
 		this->search = L"";
@@ -58,6 +62,11 @@ namespace GOTHIC_ENGINE {
 			delete this->printViewSearchBar;
 		}
 
+		if (this->printViewHelp)
+		{
+			delete this->printViewHelp;
+		}
+
 		this->ClearPrintItems();
 	}
 
@@ -69,32 +78,41 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::ResizeList(int size)
 	{
-		this->listWidth = std::clamp((this->listWidth + size), 1, 100);
+		this->listWidth = std::clamp((this->listWidth + size), 15, 100);
 	}
 
 	void ItemMap::UpdateSettings()
 	{
-		this->ResizeMarkers(zoptions->ReadInt("ItemMap", "IconSize", 10));
-		this->listWidth = std::clamp(zoptions->ReadInt("ItemMap", "ListWidth", 25), 1, 100);
+		this->ShowSearchBar = zoptions->ReadBool(PluginName.data(), "ShowSearchBar", True);
+		this->ShowMarkers = zoptions->ReadBool(PluginName.data(), "ShowMarkers", True);
+		this->ShowList = zoptions->ReadBool(PluginName.data(), "ShowList", False);
+		this->ShowHelp = zoptions->ReadBool(PluginName.data(), "ShowHelp", True);
 
-		this->mode = static_cast<ItemMapMode>(zoptions->ReadInt("ItemMap", "PrevMode", 0));
-		this->filter = static_cast<ItemMapFilter>(zoptions->ReadInt("ItemMap", "PrevFilter", 0));
+		this->ResizeMarkers(zoptions->ReadInt(PluginName.data(), "IconSize", 10));
+		this->listWidth = std::clamp(zoptions->ReadInt(PluginName.data(), "ListWidth", 25), 15, 100);
+
+		this->mode = static_cast<ItemMapMode>(zoptions->ReadInt(PluginName.data(), "PrevMode", 0));
+		this->filter = static_cast<ItemMapFilter>(zoptions->ReadInt(PluginName.data(), "PrevFilter", 0));
 
 		for (size_t i = 0; i < ColorsItemsMax; i++)
 		{
-			this->colorsItems[i] = this->HexToColor(zoptions->ReadString("ItemMap", zSTRING{ "ColorItem" } + zSTRING{ FilterNames[i] }, DefaultColorsItems[i]));
+			this->colorsItems[i] = this->HexToColor(zoptions->ReadString(PluginName.data(),
+																		zSTRING{ std::format("ColorItem{}", FilterNames[i].data()).c_str() },
+																		DefaultColorsItems[i].data()).ToChar());
 		}
 
 		for (size_t i = 0; i < ColorsNpcsMax; i++)
 		{
-			this->colorsNpcs[i] = this->HexToColor(zoptions->ReadString("ItemMap", zSTRING{ "ColorNpc" } + zSTRING{ FilterNpcsNames[i] }, DefaultColorsNpcs[i]));
+			this->colorsNpcs[i] = this->HexToColor(zoptions->ReadString(PluginName.data(),
+																		zSTRING{ std::format("ColorItem{}", FilterNpcsNames[i].data()).c_str() },
+																		DefaultColorsNpcs[i].data()).ToChar());
 		}
 	}
 
-	zCOLOR ItemMap::HexToColor(const zSTRING& hexstring)
+	zCOLOR ItemMap::HexToColor(std::string_view hexstring)
 	{
 		int r, g, b;
-		if (sscanf(hexstring.ToChar(), "#%02x%02x%02x", &r, &g, &b) == 3)
+		if (sscanf_s(hexstring.data(), "#%02x%02x%02x", &r, &g, &b) == 3)
 		{
 			return zCOLOR(r, g, b);
 		}
@@ -106,12 +124,12 @@ namespace GOTHIC_ENGINE {
 	{
 		auto filter = static_cast<int>(this->filter);
 
-		if (filter < 0 || filter > ColorsItemsMax + 1)
+		if (!FilterNames[filter].data())
 		{
 			return "Unknown";
 		}
 
-		return FilterNames[filter];
+		return FilterNames[filter].data();
 	}
 
 	zCOLOR ItemMap::GetColor(zCVob* vob)
@@ -123,28 +141,28 @@ namespace GOTHIC_ENGINE {
 			switch (item->mainflag)
 			{
 			case ITM_CAT_NF:
-				return colorsItems[static_cast<int>(ItemMapFilter::MELEE)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::MELEE)];
 			case ITM_CAT_FF:
 			case ITM_CAT_MUN:
-				return colorsItems[static_cast<int>(ItemMapFilter::RANGED)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::RANGED)];
 			case ITM_CAT_ARMOR:
-				return colorsItems[static_cast<int>(ItemMapFilter::ARMOR)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::ARMOR)];
 			case ITM_CAT_FOOD:
 				if (item->GetInstanceName().StartWith("ITPL_") || item->GetInstanceName().HasWordI("PLANT"))
 				{
-					return colorsItems[static_cast<int>(ItemMapFilter::PLANT)];
+					return this->colorsItems[static_cast<int>(ItemMapFilter::PLANT)];
 				}
-				return colorsItems[static_cast<int>(ItemMapFilter::FOOD)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::FOOD)];
 			case ITM_CAT_DOCS:
-				return colorsItems[static_cast<int>(ItemMapFilter::DOC)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::DOC)];
 			case ITM_CAT_POTION:
-				return colorsItems[static_cast<int>(ItemMapFilter::POTION)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::POTION)];
 			case ITM_CAT_RUNE:
-				return colorsItems[static_cast<int>(ItemMapFilter::SPELL)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::SPELL)];
 			case ITM_CAT_MAGIC:
-				return colorsItems[static_cast<int>(ItemMapFilter::MAGICITEM)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::MAGICITEM)];
 			case ITM_CAT_NONE:
-				return colorsItems[static_cast<int>(ItemMapFilter::NONE)];
+				return this->colorsItems[static_cast<int>(ItemMapFilter::NONE)];
 			}
 		}
 		else if (vob->GetVobType() == zVOB_TYPE_NSC)
@@ -153,7 +171,7 @@ namespace GOTHIC_ENGINE {
 
 			if (npc->attribute[NPC_ATR_HITPOINTS] <= 0 && npc->CanBeLooted_Union())
 			{
-				return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::DEAD)];
+				return this->colorsNpcs[static_cast<int>(ItemMapFilterNpcs::DEAD)];
 			}
 
 			int attitude = npc->GetPermAttitude(player);
@@ -161,27 +179,28 @@ namespace GOTHIC_ENGINE {
 			{
 				if (npc->guild < NPC_GIL_HUMANS)
 				{
-					return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::HOSTILEHUMAN)];
+					return this->colorsNpcs[static_cast<int>(ItemMapFilterNpcs::HOSTILEHUMAN)];
 				}
 				else
 				{
-					return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::HOSTILEMONSTER)];
+					return this->colorsNpcs[static_cast<int>(ItemMapFilterNpcs::HOSTILEMONSTER)];
 				}
 			}
 
 			if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
 			{
-				return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::ANGRY)];
+				return this->colorsNpcs[static_cast<int>(ItemMapFilterNpcs::ANGRY)];
 			}
 
-			if (npc->GetAivar("AIV_PARTYMEMBER"))
+			zSTRING AIV_PARTYMEMBER = "AIV_PARTYMEMBER";
+			if (npc->GetAivar(AIV_PARTYMEMBER))
 			{
-				return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::PARTY)];
+				return this->colorsNpcs[static_cast<int>(ItemMapFilterNpcs::PARTY)];
 			}
 
 			if (npc->IsFriendly(player) || npc->npcType == this->NPC_TYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
 			{
-				return colorsNpcs[static_cast<int>(ItemMapFilterNpcs::FRIENDLY)];
+				return this->colorsNpcs[static_cast<int>(ItemMapFilterNpcs::FRIENDLY)];
 			}
 		}
 
@@ -225,34 +244,34 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::ClearPrintItems()
 	{
-		for (auto printItem : vecItemsAll)
+		for (auto printItem : this->vecItemsAll)
 		{
 			delete printItem;
 		}
 
-		for (auto printItemUnique : vecItemsUniqueAll)
+		for (auto printItemUnique : this->vecItemsUniqueAll)
 		{
 			delete printItemUnique;
 		}
 
-		for (auto printNpc : vecNpcsAll)
+		for (auto printNpc : this->vecNpcsAll)
 		{
 			delete printNpc;
 		}
 
-		for (auto printNpcUnique : vecNpcsUniqueAll)
+		for (auto printNpcUnique : this->vecNpcsUniqueAll)
 		{
 			delete printNpcUnique;
 		}
 
-		vecItemsAll.clear();
-		vecItemsUniqueAll.clear();
+		this->vecItemsAll.clear();
+		this->vecItemsUniqueAll.clear();
 
-		vecNpcsAll.clear();
-		vecNpcsUniqueAll.clear();
+		this->vecNpcsAll.clear();
+		this->vecNpcsUniqueAll.clear();
 
-		vecPrintItemsCurrent.clear();
-		vecPrintItemsUniqueCurrent.clear();
+		this->vecPrintItemsCurrent.clear();
+		this->vecPrintItemsUniqueCurrent.clear();
 	}
 
 	void ItemMap::SortUniques()
@@ -276,7 +295,7 @@ namespace GOTHIC_ENGINE {
 		this->printViewMarker->ClrPrintwin();
 
 		screen->InsertItem(this->printViewMarker);
-		for (auto printItem : vecPrintItemsCurrent)
+		for (auto printItem : this->vecPrintItemsCurrent)
 		{
 			this->printViewMarker->SetPos(printItem->pos.X - (screen->anx(this->imgSize) / 2), printItem->pos.Y - (screen->any(this->imgSize) / 2));
 			this->printViewMarker->SetColor(printItem->color);
@@ -296,29 +315,34 @@ namespace GOTHIC_ENGINE {
 		screen->InsertItem(this->printViewList);
 		this->printViewList->SetPos(0, 0);
 		this->printViewList->SetSize((8182 * this->listWidth) / 100, 8192);
-		this->printViewList->SetTransparency(255);
 
 		int fontHeight = this->printViewList->FontY();
-		size_t maxItems = (8192 / fontHeight);
-		this->listPageMax = this->vecPrintItemsUniqueCurrent.size() / maxItems;
+		size_t maxItems = (8192 / fontHeight) - 2;
+		this->listPageMax = this->vecPrintItemsUniqueCurrent.size() / (maxItems);
 
 		if (this->listPage > this->listPageMax)
 		{
 			this->listPage = this->listPageMax;
 		}
 
-		int x = 200, y = 0, temp = 0;
+		int marginY = (8192 - (fontHeight * (maxItems + 1))) / 2;
+		int x = 200, y = 0, temp = 1;
+
+		zSTRING page = zSTRING{ std::format("Page: {0}/{1}", this->listPage + 1, this->listPageMax + 1).c_str() };
+		this->printViewList->Print((8192 / 2) - (this->printViewList->FontSize(page) / 2), marginY, page);
+
 		size_t min = this->listPage * maxItems;
-		size_t max = (min + maxItems) > vecPrintItemsUniqueCurrent.size() ? vecPrintItemsUniqueCurrent.size() : (min + maxItems);
+		size_t max = (min + maxItems) > this->vecPrintItemsUniqueCurrent.size() ? this->vecPrintItemsUniqueCurrent.size() : (min + maxItems);
 		for (size_t i = min; i < max; i++)
 		{
-			auto printItemUnique = vecPrintItemsUniqueCurrent[i];
+			auto printItemUnique = this->vecPrintItemsUniqueCurrent[i];
 
-			y = temp * fontHeight;
+			y = temp * fontHeight + marginY;
 
-			zSTRING txt = printItemUnique->name + zSTRING(" x") + zSTRING(printItemUnique->num);
+			zSTRING txt = zSTRING{ std::format("{0} x{1}", printItemUnique->name.ToChar(), printItemUnique->num).c_str()};
 
 			this->printViewList->Print(x, y, txt);
+
 			temp++;
 		}
 		this->printViewList->Blit();
@@ -335,9 +359,8 @@ namespace GOTHIC_ENGINE {
 		this->printViewSearchBar->ClrPrintwin();
 
 		screen->InsertItem(this->printViewSearchBar);
-		this->printViewSearchBar->SetPos(screen->anx(this->mapCoords[0] + (((this->mapCoords[2] - this->mapCoords[0]) / 3) * 2)) - 200, screen->any(this->mapCoords[1]) + 300);
-		this->printViewSearchBar->SetSize(screen->anx(this->mapCoords[2] - this->mapCoords[0]) / 3, screen->FontY() * 3);
-		this->printViewSearchBar->SetTransparency(255);
+		this->printViewSearchBar->SetPos(screen->anx(this->mapCoords[0] + ((this->mapCoords[2] - this->mapCoords[0]) / 2)) - 200, screen->any(this->mapCoords[1]) + 300);
+		this->printViewSearchBar->SetSize(screen->anx(this->mapCoords[2] - this->mapCoords[0]) / 2, screen->FontY() * 3);
 
 		int fontHeight = this->printViewSearchBar->FontY();
 		int y = 0;
@@ -393,6 +416,52 @@ namespace GOTHIC_ENGINE {
 		screen->RemoveItem(this->printViewSearchBar);
 	}
 
+	void ItemMap::PrintHelp()
+	{
+		if (!this->ShowHelp)
+		{
+			return;
+		}
+
+		this->printViewHelp->ClrPrintwin();
+
+		screen->InsertItem(this->printViewHelp);
+		this->printViewHelp->SetPos(screen->anx(this->mapCoords[0]) + 250, screen->any(this->mapCoords[1]) + 1000);
+		this->printViewHelp->SetSize(screen->anx(this->mapCoords[2] - this->mapCoords[0]) - 500, 6144);
+
+		int margin = 200;
+
+		zSTRING title = zSTRING{ PluginName.data() };
+		zSTRING version = zSTRING{ PluginVersion.data() };
+
+		this->printViewHelp->SetFont("FONT_OLD_20_WHITE_HI.TGA");
+		auto fontHeightBig = this->printViewHelp->FontY();
+
+		this->printViewHelp->SetFontColor(GFX_DORANGE);
+		auto titleX = 8192 / 2 - this->printViewHelp->FontSize(title) / 2;
+		auto titleY = fontHeightBig;
+		this->printViewHelp->Print(titleX, titleY, title);
+
+		this->printViewHelp->SetFont("FONT_OLD_10_WHITE_HI.TGA");
+		auto fontHeightSmall = this->printViewHelp->FontY();
+
+		this->printViewHelp->SetFontColor(GFX_LGREY);
+		auto startY = titleY + (fontHeightBig * 2);
+
+		for (size_t i = 0; i < HelpMax; i++)
+		{
+			this->printViewHelp->Print(margin, startY + (i * fontHeightSmall), Help[i].data());
+		}
+
+		this->printViewHelp->SetFontColor(GFX_WARMGREY);
+		auto versionX = 8192 - this->printViewHelp->FontSize(version) - margin;
+		auto versionY = 8192 - fontHeightSmall - margin;
+		this->printViewHelp->Print(versionX, versionY, version);
+
+		this->printViewHelp->Blit();
+		screen->RemoveItem(this->printViewHelp);
+	}
+
 	void ItemMap::Print()
 	{
 		if (!this->OnScreen)
@@ -400,9 +469,10 @@ namespace GOTHIC_ENGINE {
 			return;
 		}
 
-		this->PrintList();
 		this->PrintMarkers();
+		this->PrintList();
 		this->PrintSearchBar();
+		this->PrintHelp();
 
 		int ScreenX, ScreenY, ScreenSX, ScreenSY;
 		screen->GetViewport(ScreenX, ScreenY, ScreenSX, ScreenSY);
@@ -416,7 +486,7 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::AddPrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilter flag)
 	{
-		for (auto it : vecItemsUniqueAll)
+		for (auto it : this->vecItemsUniqueAll)
 		{
 			if (it->instanz == instanz) {
 				it->num = it->num + amount;
@@ -433,7 +503,7 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::AddPrintNpcUnique(oCNpc* npc)
 	{
-		for (auto it : vecNpcsUniqueAll)
+		for (auto it : this->vecNpcsUniqueAll)
 		{
 			if (it->instanz == npc->instanz) {
 				it->num = it->num + 1;
@@ -448,9 +518,9 @@ namespace GOTHIC_ENGINE {
 		switch (this->mode)
 		{
 		case ItemMapMode::ITEMS:
-			return vecItemsAll;
+			return this->vecItemsAll;
 		case ItemMapMode::NPCS:
-			return vecNpcsAll;
+			return this->vecNpcsAll;
 		}
 
 		assert(false);
@@ -461,9 +531,9 @@ namespace GOTHIC_ENGINE {
 		switch (this->mode)
 		{
 		case ItemMapMode::ITEMS:
-			return vecItemsUniqueAll;
+			return this->vecItemsUniqueAll;
 		case ItemMapMode::NPCS:
-			return vecNpcsUniqueAll;
+			return this->vecNpcsUniqueAll;
 		}
 
 		assert(false);
@@ -471,8 +541,8 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::RefreshLists()
 	{
-		vecPrintItemsCurrent.clear();
-		vecPrintItemsUniqueCurrent.clear();
+		this->vecPrintItemsCurrent.clear();
+		this->vecPrintItemsUniqueCurrent.clear();
 
 		if (this->mode != ItemMapMode::ITEMS && this->mode != ItemMapMode::NPCS)
 		{
@@ -493,7 +563,7 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			vecPrintItemsCurrent.push_back(printItem);
+			this->vecPrintItemsCurrent.push_back(printItem);
 		}
 
 		for (auto printItemUnique : this->GetCurrentVectorUniques())
@@ -508,7 +578,7 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			vecPrintItemsUniqueCurrent.push_back(printItemUnique);
+			this->vecPrintItemsUniqueCurrent.push_back(printItemUnique);
 		}
 	}
 
@@ -524,10 +594,16 @@ namespace GOTHIC_ENGINE {
 
 		this->SearchBarActive = false;
 
-		zoptions->WriteInt("ItemMap", "PrevMode", static_cast<int>(this->mode), 0);
-		zoptions->WriteInt("ItemMap", "PrevFilter", static_cast<int>(this->filter), 0);
-		zoptions->WriteInt("ItemMap", "IconSize", this->imgSize, 0);
-		zoptions->WriteInt("ItemMap", "ListWidth", this->listWidth, 0);
+		zoptions->WriteBool(PluginName.data(), "ShowSearchBar", this->ShowSearchBar, 0);
+		zoptions->WriteBool(PluginName.data(), "ShowMarkers", this->ShowMarkers, 0);
+		zoptions->WriteBool(PluginName.data(), "ShowList", this->ShowList, 0);
+		zoptions->WriteBool(PluginName.data(), "ShowHelp", this->ShowHelp, 0);
+
+		zoptions->WriteInt(PluginName.data(), "IconSize", this->imgSize, 0);
+		zoptions->WriteInt(PluginName.data(), "ListWidth", this->listWidth, 0);
+
+		zoptions->WriteInt(PluginName.data(), "PrevMode", static_cast<int>(this->mode), 0);
+		zoptions->WriteInt(PluginName.data(), "PrevFilter", static_cast<int>(this->filter), 0);
 	}
 
 	void ItemMap::HandleInput()
@@ -549,22 +625,6 @@ namespace GOTHIC_ENGINE {
 		if ((zKeyToggled(KEY_RETURN) || zKeyToggled(KEY_NUMPADENTER)) && this->ShowSearchBar)
 		{
 			this->SearchBarActive = !this->SearchBarActive;
-		}
-
-		if (zKeyToggled(KEY_PGUP) && this->mode < ItemMapMode::NPCS)
-		{
-			int mode = static_cast<int>(this->mode);
-			this->listPage = 0;
-			this->search = L"";
-			this->mode = static_cast<ItemMapMode>(++mode);
-		}
-
-		if (zKeyToggled(KEY_PGDN) && this->mode > ItemMapMode::ITEMS)
-		{
-			int mode = static_cast<int>(this->mode);
-			this->listPage = 0;
-			this->search = L"";
-			this->mode = static_cast<ItemMapMode>(--mode);
 		}
 
 		if (zKeyToggled(KEY_UP))
@@ -623,17 +683,7 @@ namespace GOTHIC_ENGINE {
 			}
 		}
 
-		if (zKeyToggled(KEY_END))
-		{
-			this->ShowMarkers = !this->ShowMarkers;
-		}
-
-		if (zKeyToggled(KEY_HOME))
-		{
-			this->ShowList = !this->ShowList;
-		}
-
-		if (zKeyToggled(KEY_DELETE))
+		if (zKeyToggled(KEY_F1))
 		{
 			this->ShowSearchBar = !this->ShowSearchBar;
 
@@ -641,6 +691,35 @@ namespace GOTHIC_ENGINE {
 			{
 				this->SearchBarActive = false;
 			}
+		}
+
+		if (zKeyToggled(KEY_F2))
+		{
+			this->ShowMarkers = !this->ShowMarkers;
+		}
+
+		if (zKeyToggled(KEY_F3))
+		{
+			this->ShowList = !this->ShowList;
+		}
+
+		if (zKeyToggled(KEY_F4))
+		{
+			this->ShowHelp = !this->ShowHelp;
+		}
+
+		if (zKeyToggled(KEY_F5) && this->mode != ItemMapMode::ITEMS)
+		{
+			this->listPage = 0;
+			this->search = L"";
+			this->mode = ItemMapMode::ITEMS;
+		}
+
+		if (zKeyToggled(KEY_F6) && this->mode != ItemMapMode::NPCS)
+		{
+			this->listPage = 0;
+			this->search = L"";
+			this->mode = ItemMapMode::NPCS;
 		}
 
 		if (zKeyToggled(KEY_BACKSPACE) && this->SearchBarActive && this->ShowSearchBar)

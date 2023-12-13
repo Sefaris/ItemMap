@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 #include <map>
+#include <format>
 #pragma region Includes
 #include "ItemMap.h"
 #include "Plugin.h"

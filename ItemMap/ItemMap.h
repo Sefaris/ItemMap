@@ -3,6 +3,9 @@
 
 namespace GOTHIC_ENGINE
 {
+	static constexpr std::string_view PluginName = "ItemMap";
+	static constexpr std::string_view PluginVersion = "1.0.0";
+
 	enum class HookType : int
 	{
 		Normal,
@@ -32,7 +35,7 @@ namespace GOTHIC_ENGINE
 	};
 	static constexpr auto ColorsItemsMax = static_cast<size_t>(ItemMapFilter::ALL);
 
-	string FilterNames[ColorsItemsMax + 1] = {
+	static constexpr std::string_view FilterNames[ColorsItemsMax + 1] = {
 		"Plants",
 		"Melee",
 		"Ranged",
@@ -46,7 +49,7 @@ namespace GOTHIC_ENGINE
 		"All"
 	};
 
-	string DefaultColorsItems[ColorsItemsMax] = {
+	static constexpr std::string_view DefaultColorsItems[ColorsItemsMax] = {
 		"#00FF00",
 		"#FF0000",
 		"#FF0000",
@@ -71,7 +74,7 @@ namespace GOTHIC_ENGINE
 	};
 	static constexpr auto ColorsNpcsMax = static_cast<size_t>(ItemMapFilterNpcs::ALL);
 
-	string FilterNpcsNames[ColorsNpcsMax + 1] = {
+	static constexpr std::string_view FilterNpcsNames[ColorsNpcsMax + 1] = {
 		"Dead",
 		"HostileHuman",
 		"HostileMonster",
@@ -81,7 +84,7 @@ namespace GOTHIC_ENGINE
 		"All"
 	};
 
-	string DefaultColorsNpcs[ColorsNpcsMax] = {
+	static constexpr std::string_view DefaultColorsNpcs[ColorsNpcsMax] = {
 		"#000000",
 		"#C800C8",
 		"#FF0000",
@@ -90,6 +93,21 @@ namespace GOTHIC_ENGINE
 		"#AFFFAF"
 	};
 
+	static constexpr size_t HelpMax = 11;
+	static constexpr std::string_view Help[HelpMax] = {
+		"F1 - On/Off Search bar",
+		"F2 - On/Off Markers on map",
+		"F3 - On/Off List of items/npcs",
+		"F4 - On/Off This help screen :)",
+		"F5 - Switch to Items",
+		"F6 - Switch to NPCs",
+		"Shift + Backspace - Clear search bar (if active)",
+		"Arrow Left/Right - Change filter (only items)",
+		"Arrow Up/Down - Scroll list (if visible)",
+		"CTRL + Arrow Up/Down - Change marker size (if visible)",
+		"CTRL + Arrow Left/Right - Change list size (if visible)"
+	};
+	
 	struct PrintItem
 	{
 		zPOS pos;
@@ -158,14 +176,16 @@ namespace GOTHIC_ENGINE
 		void PrintMarkers();
 		void PrintList();
 		void PrintSearchBar();
+		void PrintHelp();
 		std::vector<PrintItem*>& GetCurrentVectorAll();
 		std::vector<PrintItemUnique*>& GetCurrentVectorUniques();
 		zSTRING GetFilterName();
-		zCOLOR HexToColor(const zSTRING& hexstring);
+		zCOLOR HexToColor(std::string_view hexstring);
 
 		zCView* printViewMarker;
 		zCView* printViewList;
 		zCView* printViewSearchBar;
+		zCView* printViewHelp;
 
 		std::vector<PrintItem*> vecItemsAll;
 		std::vector<PrintItemUnique*> vecItemsUniqueAll;
@@ -180,6 +200,7 @@ namespace GOTHIC_ENGINE
 		bool ShowMarkers;
 		bool ShowList;
 		bool ShowSearchBar;
+		bool ShowHelp;
 		bool SearchBarActive;
 
 		int NPC_TYPE_FRIEND;
