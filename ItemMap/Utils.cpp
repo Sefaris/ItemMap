@@ -116,9 +116,11 @@ namespace GOTHIC_ENGINE {
 #if ENGINE <= Engine_G1A
 		for (int i = INV_NONE; i < INV_MAX; i++)
 		{
-			for (int x = 0; x < this->inventory2.GetNumItemsInCategory(i); x++)
+			auto npcInv = this->inventory2.inventory[i].next;
+			while (npcInv)
 			{
-				auto item = this->GetItem(i, x);
+				auto item = npcInv->GetData();
+				npcInv = npcInv->next;
 
 				if (item->instanz < 0)
 				{
@@ -134,7 +136,7 @@ namespace GOTHIC_ENGINE {
 			}
 		}
 #else
-		auto npcInv = this->inventory2.GetContents()->next;
+		auto npcInv = this->inventory2.inventory.next;
 		while (npcInv)
 		{
 			auto item = npcInv->GetData();
