@@ -13,6 +13,11 @@ namespace GOTHIC_ENGINE {
 			return;
 		}
 
+		if (!docMap->ViewPageMap)
+		{
+			return;
+		}
+
 		zSTRING mapLevelName = docMap->Level;
 		mapLevelName.Replace("/", "\\");
 		zSTRING worldLevelName = ogame->GetGameWorld()->GetWorldFilename();
