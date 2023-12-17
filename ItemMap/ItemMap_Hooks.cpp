@@ -7,7 +7,7 @@ namespace GOTHIC_ENGINE {
 	{
 		THISCALL(Ivk_oCDocumentManager_Show)(id);
 
-		oCViewDocumentMap* docMap = zDYNAMIC_CAST<oCViewDocumentMap>(this->GetDocumentView(id));
+		oCViewDocumentMap* docMap = dynamic_cast<oCViewDocumentMap*>(this->GetDocumentView(id));
 		if (!docMap)
 		{
 			return;
