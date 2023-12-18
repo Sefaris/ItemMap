@@ -98,6 +98,11 @@ namespace GOTHIC_ENGINE {
 
 	bool oCNpc::CanBeLooted_Union()
 	{
+		if (!this->homeWorld && !this->HasMissionItem())
+		{
+			return false;
+		}
+
 #if ENGINE <= Engine_G1A
 		for (int i = INV_NONE; i < INV_MAX; i++)
 		{
