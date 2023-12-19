@@ -19,7 +19,7 @@ namespace GOTHIC_ENGINE
 		NPCS
 	};
 
-	enum class ItemMapFilter : int
+	enum class ItemMapFilterItems : int
 	{
 		PLANT,
 		MELEE,
@@ -33,9 +33,9 @@ namespace GOTHIC_ENGINE
 		NONE,
 		ALL
 	};
-	static constexpr auto ColorsItemsMax = static_cast<size_t>(ItemMapFilter::ALL);
+	static constexpr auto ColorsItemsMax = static_cast<size_t>(ItemMapFilterItems::ALL);
 
-	static constexpr std::string_view FilterNames[ColorsItemsMax + 1] = {
+	static constexpr std::string_view FilterItemsNames[ColorsItemsMax + 1] = {
 		"Plants",
 		"Melee",
 		"Ranged",
@@ -65,59 +65,73 @@ namespace GOTHIC_ENGINE
 	enum class ItemMapFilterNpcs : int
 	{
 		DEAD,
-		HOSTILEHUMAN,
-		HOSTILEMONSTER,
 		ANGRY,
 		FRIENDLY,
 		PARTY,
+		TRADER,
+#if ENGINE >= Engine_G2
+		PICKPOCKET,
+#endif
+		HOSTILEHUMAN,
+		HOSTILEMONSTER,
 		ALL
 	};
 	static constexpr auto ColorsNpcsMax = static_cast<size_t>(ItemMapFilterNpcs::ALL);
 
 	static constexpr std::string_view FilterNpcsNames[ColorsNpcsMax + 1] = {
 		"Dead",
-		"HostileHuman",
-		"HostileMonster",
 		"Angry",
 		"Friendly",
 		"Party",
+		"Trader",
+#if ENGINE >= Engine_G2
+		"Pickpocket",
+#endif
+		"HostileHuman",
+		"HostileMonster",
 		"All"
 	};
 
 	static constexpr std::string_view DefaultColorsNpcs[ColorsNpcsMax] = {
 		"#000000",
-		"#C800C8",
-		"#FF0000",
 		"#FF8000",
 		"#00FF00",
-		"#AFFFAF"
+		"#AFFFAF",
+		"#ffff80",
+#if ENGINE >= Engine_G2
+		"#80afff",
+#endif
+		"#C800C8",
+		"#FF0000"
 	};
 
-	static constexpr size_t HelpMax = 11;
+	static constexpr size_t HelpMax = 12;
 	static constexpr std::string_view Help[HelpMax] = {
+		"MAP KEY, ESC - Close map",
 		"F1 - On/Off Search bar",
 		"F2 - On/Off Markers on map",
-		"F3 - On/Off List of items/npcs",
+		"F3 - On/Off List of unique items/npcs",
 		"F4 - On/Off This help screen :)",
-		"F5 - Switch to Items",
-		"F6 - Switch to NPCs",
+		"F5 - Switch category to Items",
+		"F6 - Switch category to NPCs",
 		"Shift + Backspace - Clear search bar (if active)",
-		"Arrow Left/Right - Change filter (only items)",
+		"Arrow Left/Right - Change filter",
 		"Arrow Up/Down - Scroll list (if visible)",
 		"CTRL + Arrow Up/Down - Change marker size (if visible)",
 		"CTRL + Arrow Left/Right - Change list size (if visible)"
 	};
-	
+
 	struct PrintItem
 	{
 		zPOS pos;
 		zCOLOR color;
 		zSTRING name;
 		zSTRING instancename;
-		ItemMapFilter flag;
+		ItemMapFilterItems flagItems;
+		int flagNpcs;
 
-		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, ItemMapFilter flag = ItemMapFilter::NONE)
-			: pos(pos), color(color), name(name), instancename(instancename), flag(flag)
+		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, ItemMapFilterItems flagItems, int flagNpcs)
+			: pos(pos), color(color), name(name), instancename(instancename), flagItems(flagItems), flagNpcs(flagNpcs)
 		{}
 	};
 
@@ -127,10 +141,11 @@ namespace GOTHIC_ENGINE
 		zSTRING name;
 		zSTRING instancename;
 		int num;
-		ItemMapFilter flag;
+		ItemMapFilterItems flagItems;
+		int flagNpcs;
 
-		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int num, ItemMapFilter flag = ItemMapFilter::NONE)
-			: instanz(instanz), name(name), instancename(instancename), num(num), flag(flag)
+		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int num, ItemMapFilterItems flagItems, int flagNpcs)
+			: instanz(instanz), name(name), instancename(instancename), num(num), flagItems(flagItems), flagNpcs(flagNpcs)
 		{}
 	};
 
@@ -142,9 +157,9 @@ namespace GOTHIC_ENGINE
 		void Print();
 		void ClearPrintItems();
 		void AddPrintItem(PrintItem* printItem);
-		void AddPrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilter flag);
+		void AddPrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilterItems flagItems, int flagNpcs);
 		void AddPrintNpc(PrintItem* printItem);
-		void AddPrintNpcUnique(oCNpc* npc);
+		void AddPrintNpcUnique(int instanz, const zSTRING& name, const zSTRING& instancename, ItemMapFilterItems flagItems, int flagNpcs);
 		void SortUniques();
 		void RefreshLists();
 		void UpdateSettings();
@@ -153,8 +168,9 @@ namespace GOTHIC_ENGINE
 		void HandleInput();
 		void Close();
 		void InitMap(HookType hook, int rotate = 0);
-		zCOLOR GetColor(zCVob* vob);
-		ItemMapFilter GetFilterFlag(zCVob* vob);
+		zCOLOR GetColor(ItemMapFilterItems flagItems, int flagNpcs);
+		ItemMapFilterItems GetFilterFlagItems(zCVob* vob);
+		int GetFilterFlagNpcs(zCVob* vob);
 		HookType Hook;
 		bool OnScreen;
 		int listWidth;
@@ -165,9 +181,15 @@ namespace GOTHIC_ENGINE
 		size_t listPageMax;
 		wstring search;
 		ItemMapMode mode;
-		ItemMapFilter filter;
+		ItemMapFilterItems filterItems;
+		ItemMapFilterNpcs filterNpcs;
 		zVEC4 mapCoords;
 		zVEC4 worldCoords;
+
+#if ENGINE >= Engine_G2
+		void GetPickPockets();
+#endif
+		void GetTraders();
 
 		//For CoM ikarus maps
 		void CoMHack();
@@ -204,6 +226,14 @@ namespace GOTHIC_ENGINE
 		bool SearchBarActive;
 
 		int NPC_TYPE_FRIEND;
+
+#if ENGINE >= Engine_G2
+		zCArray<oCInfo*> pickpocketInfos;
+		int indexCanStealNpcAST;
+		bool CanBePickPocketed(oCNpc* npc);
+#endif
+		zCArray<oCInfo*> traderInfos;
+		bool CanTrade(oCNpc* npc);
 
 		//For CoM ikarus maps
 		int indexSpriteMapHandle = 0;

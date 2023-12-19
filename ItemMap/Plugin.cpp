@@ -42,6 +42,10 @@ namespace GOTHIC_ENGINE {
 	}
 
 	void LoadEnd() {
+#if ENGINE >= Engine_G2
+		itemMap->GetPickPockets();
+#endif
+		itemMap->GetTraders();
 	}
 
 	void Game_LoadBegin_NewGame() {
