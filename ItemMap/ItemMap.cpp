@@ -153,13 +153,13 @@ namespace GOTHIC_ENGINE {
 	}
 
 
-	zCOLOR ItemMap::GetColor(ItemMapMode mode, std::variant<ItemMapFilterItems, int> flags)
+	zCOLOR ItemMap::GetColor(std::variant<ItemMapFilterItems, int> flags)
 	{
-		if (mode == ItemMapMode::ITEMS)
+		if (std::holds_alternative<ItemMapFilterItems>(flags))
 		{
 			return this->colorsItems[static_cast<size_t>(std::get<ItemMapFilterItems>(flags))];
 		}
-		else if (mode == ItemMapMode::NPCS)
+		else if (std::holds_alternative<int>(flags))
 		{
 			for (size_t i = 0; i < static_cast<size_t>(ItemMapFilterNpcs::ALL); i++)
 			{
@@ -515,32 +515,37 @@ namespace GOTHIC_ENGINE {
 		zrenderer->SetViewport(ScreenX, ScreenY, ScreenSX, ScreenSY);
 	}
 
-	void ItemMap::AddPrintItem(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilterItems flags, zPOS pos, zCOLOR color)
+	void ItemMap::AddPrintItem(oCItem* item, zPOS pos)
 	{
-		this->vecItemsAll.push_back(new PrintItem(pos, color, name, instancename, flags));
+		auto flags = this->GetFilterFlagItems(item);
+		auto color = this->GetColor(flags);
+
+		this->vecItemsAll.push_back(new PrintItem(pos, color, item->name, item->GetInstanceName(), flags));
 
 		for (auto it : this->vecItemsUniqueAll)
 		{
-			if (it->instanz == instanz) {
-				it->num = it->num + amount;
+			if (it->instanz == item->instanz) {
+				it->num = it->num + item->amount;
 				return;
 			}
 		}
-		this->vecItemsUniqueAll.push_back(new PrintItemUnique(instanz, name, instancename, amount, flags));
+		this->vecItemsUniqueAll.push_back(new PrintItemUnique(item->instanz, item->name, item->GetInstanceName(), item->amount, flags));
 	}
 
-	void ItemMap::AddPrintNpc(int instanz, const zSTRING& name, const zSTRING& instancename, int flags, zPOS pos, zCOLOR color)
+	void ItemMap::AddPrintNpc(oCNpc* npc, zPOS pos)
 	{
-		this->vecNpcsAll.push_back(new PrintItem(pos, color, name, instancename, flags));
+		auto flags = this->GetFilterFlagNpcs(npc);
+		auto color = this->GetColor(flags);
+		this->vecNpcsAll.push_back(new PrintItem(pos, color, npc->name, npc->GetInstanceName(), flags));
 		
 		for (auto it : this->vecNpcsUniqueAll)
 		{
-			if (it->instanz == instanz) {
+			if (it->instanz == npc->instanz) {
 				it->num = it->num + 1;
 				return;
 			}
 		}
-		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(instanz, name, instancename, 1, flags));
+		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(npc->instanz, npc->name, npc->GetInstanceName(), 1, flags));
 	}
 
 	std::vector<PrintItem*>& ItemMap::GetCurrentVectorAll()
@@ -976,17 +981,13 @@ namespace GOTHIC_ENGINE {
 			{
 				auto item = static_cast<oCItem*>(vob);
 
-				auto flags = this->GetFilterFlagItems(item);
-				auto color = this->GetColor(ItemMapMode::ITEMS, flags);
-				this->AddPrintItem(item->instanz, item->name, item->GetInstanceName(), item->amount, flags, pos, color);
+				this->AddPrintItem(item, pos);
 			}
 			else if (vobType == zVOB_TYPE_NSC)
 			{
 				auto npc = static_cast<oCNpc*>(vob);
 
-				auto flags = this->GetFilterFlagNpcs(npc);
-				auto color = this->GetColor(ItemMapMode::NPCS, flags);
-				this->AddPrintNpc(npc->instanz, npc->name, npc->GetInstanceName(), flags, pos, color);
+				this->AddPrintNpc(npc, pos);
 			}
 		}
 

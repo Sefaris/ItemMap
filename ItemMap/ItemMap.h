@@ -154,8 +154,8 @@ namespace GOTHIC_ENGINE
 		~ItemMap();
 		void Print();
 		void ClearPrintItems();
-		void AddPrintItem(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilterItems flags, zPOS pos, zCOLOR color);
-		void AddPrintNpc(int instanz, const zSTRING& name, const zSTRING& instancename, int flags, zPOS pos, zCOLOR color);
+		void AddPrintItem(oCItem* item, zPOS pos);
+		void AddPrintNpc(oCNpc* npc, zPOS pos);
 		void SortUniques();
 		void RefreshLists();
 		void UpdateSettings();
@@ -164,7 +164,7 @@ namespace GOTHIC_ENGINE
 		void HandleInput();
 		void Close();
 		void InitMap(HookType hook, int rotate = 0);
-		zCOLOR GetColor(ItemMapMode mode, std::variant<ItemMapFilterItems, int> flags);
+		zCOLOR GetColor(std::variant<ItemMapFilterItems, int> flags);
 		ItemMapFilterItems GetFilterFlagItems(oCItem* item);
 		int GetFilterFlagNpcs(oCNpc* npc);
 		HookType Hook;
