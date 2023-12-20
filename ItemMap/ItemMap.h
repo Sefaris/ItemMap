@@ -68,9 +68,9 @@ namespace GOTHIC_ENGINE
 		ANGRY,
 		FRIENDLY,
 		PARTY,
-		TRADER,
 		HOSTILEHUMAN,
 		HOSTILEMONSTER,
+		TRADER,
 #if ENGINE >= Engine_G2
 		PICKPOCKET,
 #endif
@@ -83,9 +83,9 @@ namespace GOTHIC_ENGINE
 		"Angry",
 		"Friendly",
 		"Party",
-		"Trader",
 		"HostileHuman",
 		"HostileMonster",
+		"Trader",
 #if ENGINE >= Engine_G2
 		"Pickpocket",
 #endif
@@ -97,9 +97,9 @@ namespace GOTHIC_ENGINE
 		"#FF8000",
 		"#00FF00",
 		"#AFFFAF",
-		"#ffff80",
 		"#C800C8",
-		"#FF0000"
+		"#FF0000",
+		"#ffff80"
 #if ENGINE >= Engine_G2
 		,"#80afff"
 #endif
@@ -127,11 +127,10 @@ namespace GOTHIC_ENGINE
 		zCOLOR color;
 		zSTRING name;
 		zSTRING instancename;
-		ItemMapFilterItems flagItems;
-		int flagNpcs;
+		std::variant<ItemMapFilterItems, int> flags;
 
-		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, ItemMapFilterItems flagItems, int flagNpcs)
-			: pos(pos), color(color), name(name), instancename(instancename), flagItems(flagItems), flagNpcs(flagNpcs)
+		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, std::variant<ItemMapFilterItems, int> flags)
+			: pos(pos), color(color), name(name), instancename(instancename), flags(flags)
 		{}
 	};
 
@@ -141,11 +140,10 @@ namespace GOTHIC_ENGINE
 		zSTRING name;
 		zSTRING instancename;
 		int num;
-		ItemMapFilterItems flagItems;
-		int flagNpcs;
+		std::variant<ItemMapFilterItems, int> flags;
 
-		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int num, ItemMapFilterItems flagItems, int flagNpcs)
-			: instanz(instanz), name(name), instancename(instancename), num(num), flagItems(flagItems), flagNpcs(flagNpcs)
+		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int num, std::variant<ItemMapFilterItems, int> flags)
+			: instanz(instanz), name(name), instancename(instancename), num(num), flags(flags)
 		{}
 	};
 
@@ -156,10 +154,8 @@ namespace GOTHIC_ENGINE
 		~ItemMap();
 		void Print();
 		void ClearPrintItems();
-		void AddPrintItem(PrintItem* printItem);
-		void AddPrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilterItems flagItems, int flagNpcs);
-		void AddPrintNpc(PrintItem* printItem);
-		void AddPrintNpcUnique(int instanz, const zSTRING& name, const zSTRING& instancename, ItemMapFilterItems flagItems, int flagNpcs);
+		void AddPrintItem(int instanz, const zSTRING& name, const zSTRING& instancename, int amount, ItemMapFilterItems flags, zPOS pos, zCOLOR color);
+		void AddPrintNpc(int instanz, const zSTRING& name, const zSTRING& instancename, int flags, zPOS pos, zCOLOR color);
 		void SortUniques();
 		void RefreshLists();
 		void UpdateSettings();
@@ -168,9 +164,9 @@ namespace GOTHIC_ENGINE
 		void HandleInput();
 		void Close();
 		void InitMap(HookType hook, int rotate = 0);
-		zCOLOR GetColor(ItemMapFilterItems flagItems, int flagNpcs);
-		ItemMapFilterItems GetFilterFlagItems(zCVob* vob);
-		int GetFilterFlagNpcs(zCVob* vob);
+		zCOLOR GetColor(ItemMapMode mode, std::variant<ItemMapFilterItems, int> flags);
+		ItemMapFilterItems GetFilterFlagItems(oCItem* item);
+		int GetFilterFlagNpcs(oCNpc* npc);
 		HookType Hook;
 		bool OnScreen;
 		int listWidth;
@@ -201,7 +197,7 @@ namespace GOTHIC_ENGINE
 		void PrintHelp();
 		std::vector<PrintItem*>& GetCurrentVectorAll();
 		std::vector<PrintItemUnique*>& GetCurrentVectorUniques();
-		zSTRING GetFilterName();
+		zSTRING GetFilterName() const;
 		zCOLOR HexToColor(std::string_view hexstring);
 
 		zCView* printViewMarker;
@@ -230,12 +226,13 @@ namespace GOTHIC_ENGINE
 		void SetNpcFlag(int& npcFlags, ItemMapFilterNpcs filterFlag);
 		bool HasNpcFlag(int npcFlags, ItemMapFilterNpcs filterFlag);
 #if ENGINE >= Engine_G2
-		zCArray<oCInfo*> pickpocketInfos;
+		std::vector<oCInfo*> pickpocketInfos;
 		int indexCanStealNpcAST;
 		bool CanBePickPocketed(oCNpc* npc);
 #endif
-		zCArray<oCInfo*> traderInfos;
+		std::vector<oCInfo*> traderInfos;
 		bool CanTrade(oCNpc* npc);
+		bool ShowTradersNoCond;
 
 		//For CoM ikarus maps
 		int indexSpriteMapHandle = 0;

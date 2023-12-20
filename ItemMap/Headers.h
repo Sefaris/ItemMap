@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <format>
+#include <variant>
 #pragma region Includes
 #include "ItemMap.h"
 #include "Plugin.h"

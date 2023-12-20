@@ -32,15 +32,14 @@ namespace GOTHIC_ENGINE {
 		auto mapPos = mapView->PixelPosition;
 		auto mapSize = mapView->PixelSize;
 
-		int TopX = mapPos.X;
-		int TopY = mapPos.Y;
-		int BottomX = TopX + mapSize.X;
-		int BottomY = TopY + mapSize.Y;
+		float TopX = static_cast<float>(mapPos.X);
+		float TopY = static_cast<float>(mapPos.Y);
+		float BottomX = static_cast<float>(TopX + mapSize.X);
+		float BottomY = static_cast<float>(TopY + mapSize.Y);
 
 		itemMap->mapCoords = zVEC4(TopX, TopY, BottomX, BottomY);
 
-		auto world = ogame->GetGameWorld();
-		auto worldBox = world->bspTree.bspRoot->bbox3D;
+		auto& worldBox = ogame->GetGameWorld()->bspTree.bspRoot->bbox3D;
 		itemMap->worldCoords = { 0, 0, 0, 0 };
 
 #if ENGINE >= Engine_G2
