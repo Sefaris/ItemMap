@@ -69,11 +69,11 @@ namespace GOTHIC_ENGINE
 		FRIENDLY,
 		PARTY,
 		TRADER,
+		HOSTILEHUMAN,
+		HOSTILEMONSTER,
 #if ENGINE >= Engine_G2
 		PICKPOCKET,
 #endif
-		HOSTILEHUMAN,
-		HOSTILEMONSTER,
 		ALL
 	};
 	static constexpr auto ColorsNpcsMax = static_cast<size_t>(ItemMapFilterNpcs::ALL);
@@ -84,11 +84,11 @@ namespace GOTHIC_ENGINE
 		"Friendly",
 		"Party",
 		"Trader",
+		"HostileHuman",
+		"HostileMonster",
 #if ENGINE >= Engine_G2
 		"Pickpocket",
 #endif
-		"HostileHuman",
-		"HostileMonster",
 		"All"
 	};
 
@@ -98,11 +98,11 @@ namespace GOTHIC_ENGINE
 		"#00FF00",
 		"#AFFFAF",
 		"#ffff80",
-#if ENGINE >= Engine_G2
-		"#80afff",
-#endif
 		"#C800C8",
 		"#FF0000"
+#if ENGINE >= Engine_G2
+		,"#80afff"
+#endif
 	};
 
 	static constexpr size_t HelpMax = 12;
@@ -227,6 +227,8 @@ namespace GOTHIC_ENGINE
 
 		int NPC_TYPE_FRIEND;
 
+		void SetNpcFlag(int& npcFlags, ItemMapFilterNpcs filterFlag);
+		bool HasNpcFlag(int npcFlags, ItemMapFilterNpcs filterFlag);
 #if ENGINE >= Engine_G2
 		zCArray<oCInfo*> pickpocketInfos;
 		int indexCanStealNpcAST;

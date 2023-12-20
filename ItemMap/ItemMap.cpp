@@ -158,40 +158,13 @@ namespace GOTHIC_ENGINE {
 		}
 		else if (flagNpcs != 0)
 		{
-			if (flagNpcs & (1 << static_cast<int>(ItemMapFilterNpcs::DEAD)))
+			for (size_t i = 0; i < static_cast<size_t>(ItemMapFilterNpcs::ALL); i++)
 			{
-				return this->colorsNpcs[static_cast<size_t>(ItemMapFilterNpcs::DEAD)];
+				if (this->HasNpcFlag(flagNpcs, static_cast<ItemMapFilterNpcs>(i)))
+				{
+					return this->colorsNpcs[i];
+				}
 			}
-			else if (flagNpcs & (1 << static_cast<int>(ItemMapFilterNpcs::HOSTILEHUMAN)))
-			{
-				return this->colorsNpcs[static_cast<size_t>(ItemMapFilterNpcs::HOSTILEHUMAN)];
-			}
-			else if (flagNpcs & (1 << static_cast<int>(ItemMapFilterNpcs::HOSTILEMONSTER)))
-			{
-				return this->colorsNpcs[static_cast<size_t>(ItemMapFilterNpcs::HOSTILEMONSTER)];
-			}
-			else if (flagNpcs & (1 << static_cast<int>(ItemMapFilterNpcs::ANGRY)))
-			{
-				return this->colorsNpcs[static_cast<size_t>(ItemMapFilterNpcs::ANGRY)];
-			}
-			else if (flagNpcs & (1 << static_cast<int>(ItemMapFilterNpcs::FRIENDLY)))
-			{
-				return this->colorsNpcs[static_cast<size_t>(ItemMapFilterNpcs::FRIENDLY)];
-			}
-			else if (flagNpcs & (1 << static_cast<int>(ItemMapFilterNpcs::PARTY)))
-			{
-				return this->colorsNpcs[static_cast<size_t>(ItemMapFilterNpcs::PARTY)];
-			}
-			else if (flagNpcs & (1 << static_cast<int>(ItemMapFilterNpcs::TRADER)))
-			{
-				return this->colorsNpcs[static_cast<size_t>(ItemMapFilterNpcs::TRADER)];
-			}
-#if ENGINE >= Engine_G2
-			else if (flagNpcs & (1 << static_cast<int>(ItemMapFilterNpcs::PICKPOCKET)))
-			{
-				return this->colorsNpcs[static_cast<size_t>(ItemMapFilterNpcs::PICKPOCKET)];
-			}
-#endif
 		}
 
 		return zCOLOR(128, 128, 128);
@@ -234,6 +207,17 @@ namespace GOTHIC_ENGINE {
 		return ItemMapFilterItems::ALL;
 	}
 
+	void ItemMap::SetNpcFlag(int& npcFlags, ItemMapFilterNpcs filterFlag)
+	{
+		npcFlags |= (1 << static_cast<int>(filterFlag));
+	}
+
+	bool ItemMap::HasNpcFlag(int npcFlags, ItemMapFilterNpcs filterFlag)
+	{
+		int flag = 1 << static_cast<int>(filterFlag);
+		return (npcFlags & flag) == flag;
+	}
+
 	int ItemMap::GetFilterFlagNpcs(zCVob* vob)
 	{
 		int flags = 0;
@@ -244,19 +228,19 @@ namespace GOTHIC_ENGINE {
 
 			if (npc->attribute[NPC_ATR_HITPOINTS] <= 0 && npc->CanBeLooted_Union())
 			{
-				flags |= (1 << static_cast<int>(ItemMapFilterNpcs::DEAD));
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::DEAD);
 			}
 
 #if ENGINE >= Engine_G2
 			if (this->CanBePickPocketed(npc))
 			{
-				flags |= (1 << static_cast<int>(ItemMapFilterNpcs::PICKPOCKET));
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::PICKPOCKET);
 			}
 #endif
 
 			if (this->CanTrade(npc))
 			{
-				flags |= (1 << static_cast<int>(ItemMapFilterNpcs::TRADER));
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::TRADER);
 			}
 
 			int attitude = npc->GetPermAttitude(player);
@@ -264,28 +248,28 @@ namespace GOTHIC_ENGINE {
 			{
 				if (npc->guild < NPC_GIL_HUMANS)
 				{
-					flags |= (1 << static_cast<int>(ItemMapFilterNpcs::HOSTILEHUMAN));
+					this->SetNpcFlag(flags, ItemMapFilterNpcs::HOSTILEHUMAN);
 				}
 				else
 				{
-					flags |= (1 << static_cast<int>(ItemMapFilterNpcs::HOSTILEMONSTER));
+					this->SetNpcFlag(flags, ItemMapFilterNpcs::HOSTILEMONSTER);
 				}
 			}
 
 			if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
 			{
-				flags |= (1 << static_cast<int>(ItemMapFilterNpcs::ANGRY));
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::ANGRY);
 			}
 
 			zSTRING AIV_PARTYMEMBER = "AIV_PARTYMEMBER";
 			if (npc->GetAivar(AIV_PARTYMEMBER))
 			{
-				flags |= (1 << static_cast<int>(ItemMapFilterNpcs::PARTY));
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::PARTY);
 			}
 
 			if (npc->IsFriendly(player) || npc->npcType == this->NPC_TYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
 			{
-				flags |= (1 << static_cast<int>(ItemMapFilterNpcs::FRIENDLY));
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::FRIENDLY);
 			}
 		}
 
@@ -624,7 +608,7 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			if (mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !(printItem->flagNpcs & (1 << static_cast<int>(this->filterNpcs))))
+			if (mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(printItem->flagNpcs, this->filterNpcs))
 			{
 				continue;
 			}
@@ -644,7 +628,7 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			if (mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !(printItemUnique->flagNpcs & (1 << static_cast<int>(this->filterNpcs))))
+			if (mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(printItemUnique->flagNpcs, this->filterNpcs))
 			{
 				continue;
 			}
