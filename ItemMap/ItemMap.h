@@ -110,15 +110,15 @@ namespace GOTHIC_ENGINE
 		"MAP KEY, ESC - Close map",
 		"F1 - On/Off Search bar",
 		"F2 - On/Off Markers on map",
-		"F3 - On/Off List of unique items/npcs",
+		"F3 - On/Off List of unique items/npcs with total amount",
 		"F4 - On/Off This help screen :)",
 		"F5 - Switch category to Items",
 		"F6 - Switch category to NPCs",
 		"Shift + Backspace - Clear search bar (if active)",
 		"Arrow Left/Right - Change filter",
-		"Arrow Up/Down - Scroll list (if visible)",
+		"Arrow Up/Down - Change page on list (if visible)",
 		"CTRL + Arrow Up/Down - Change marker size (if visible)",
-		"CTRL + Arrow Left/Right - Change list size (if visible)"
+		"CTRL + Arrow Left/Right - Change list width (if visible)"
 	};
 
 	struct PrintItem
