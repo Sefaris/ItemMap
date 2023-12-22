@@ -5,6 +5,9 @@ namespace GOTHIC_ENGINE
 {
 	static constexpr std::string_view PluginName = "ItemMap";
 	static constexpr std::string_view PluginVersion = "1.0.0";
+	
+	static constexpr float sin90 = 1.0f; // 90 degree sinus
+	static constexpr float cos90 = 0.0f; // 90 degree cosinus
 
 	enum class HookType : int
 	{
@@ -237,6 +240,7 @@ namespace GOTHIC_ENGINE
 		//For CoM ikarus maps
 		int indexSpriteMapHandle = 0;
 		int indexSpriteCursorHandle = 0;
+		void Rotate90Degree(int& x, int& y, zVEC2& mapCenter);
 	};
 
 	std::unique_ptr<ItemMap> itemMap;

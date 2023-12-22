@@ -164,7 +164,7 @@ namespace GOTHIC_ENGINE {
 		return false;
 	}
 
-	int oCNpc::GetAivar(const zSTRING& aivar) {
+	int oCNpc::GetAivar_Union(const zSTRING& aivar) {
 		auto sym = parser->GetSymbol(aivar);
 		if (!sym)
 		{

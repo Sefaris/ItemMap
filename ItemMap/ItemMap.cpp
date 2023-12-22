@@ -130,28 +130,14 @@ namespace GOTHIC_ENGINE {
 
 	zSTRING ItemMap::GetFilterName() const
 	{
-		if (this->mode == ItemMapMode::ITEMS)
+		switch (this->mode)
 		{
-			auto filter = static_cast<size_t>(this->filterItems);
-
-			if (FilterItemsNames[filter].data())
-			{
-				return FilterItemsNames[filter].data();
-			}
+		case ItemMapMode::ITEMS:
+			return std::format("Items - {}", FilterItemsNames[static_cast<size_t>(this->filterItems)]).c_str();
+		case ItemMapMode::NPCS:
+			return std::format("NPCs - {}", FilterNpcsNames[static_cast<size_t>(this->filterNpcs)]).c_str();;
 		}
-		else if (this->mode == ItemMapMode::NPCS)
-		{
-			auto filter = static_cast<size_t>(this->filterNpcs);
-
-			if (FilterNpcsNames[filter].data())
-			{
-				return FilterNpcsNames[filter].data();
-			}
-		}
-
-		return "Unknown";
 	}
-
 
 	zCOLOR ItemMap::GetColor(std::variant<ItemMapFilterItems, int> flags)
 	{
@@ -254,7 +240,7 @@ namespace GOTHIC_ENGINE {
 		}
 
 		zSTRING AIV_PARTYMEMBER = "AIV_PARTYMEMBER";
-		if (npc->GetAivar(AIV_PARTYMEMBER))
+		if (npc->GetAivar_Union(AIV_PARTYMEMBER))
 		{
 			this->SetNpcFlag(flags, ItemMapFilterNpcs::PARTY);
 		}
@@ -382,7 +368,7 @@ namespace GOTHIC_ENGINE {
 		}
 
 		this->printViewSearchBar->ClrPrintwin();
-		
+
 		screen->InsertItem(this->printViewSearchBar);
 		this->printViewSearchBar->SetPos(screen->anx(static_cast<int>(this->mapCoords[0]) + ((static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2)) - 200, screen->any(static_cast<int>(this->mapCoords[1])) + 300);
 		this->printViewSearchBar->SetSize(screen->anx(static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2, screen->FontY() * 3);
@@ -393,39 +379,20 @@ namespace GOTHIC_ENGINE {
 		this->printViewSearchBar->SetFontColor(GFX_COLDGREY);
 
 		ItemMapMode mode = static_cast<ItemMapMode>(this->mode);
-		zSTRING txtSearchFilter = "Unknown";
+		zSTRING txtSearchFilter = this->GetFilterName();
 
-		switch (mode)
+		if ((mode == ItemMapMode::ITEMS && this->filterItems > ItemMapFilterItems::PLANT)
+			|| (mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::DEAD))
 		{
-		case ItemMapMode::ITEMS:
-			if (this->filterItems > ItemMapFilterItems::PLANT)
-			{
-				zSTRING less = "<<";
-				this->printViewSearchBar->Print(0, y, less);
-			}
-			if (this->filterItems < ItemMapFilterItems::ALL)
-			{
-				zSTRING more = ">>";
-				this->printViewSearchBar->Print(8192 - this->printViewSearchBar->FontSize(more), y, more);
-			}
+			zSTRING less = "<<";
+			this->printViewSearchBar->Print(0, y, less);
+		}
 
-			txtSearchFilter = "Items - " + this->GetFilterName();
-
-			break;
-		case ItemMapMode::NPCS:
-			if (this->filterNpcs > ItemMapFilterNpcs::DEAD)
-			{
-				zSTRING less = "<<";
-				this->printViewSearchBar->Print(0, y, less);
-			}
-			if (this->filterNpcs < ItemMapFilterNpcs::ALL)
-			{
-				zSTRING more = ">>";
-				this->printViewSearchBar->Print(8192 - this->printViewSearchBar->FontSize(more), y, more);
-			}
-
-			txtSearchFilter = "NPCs - " + this->GetFilterName();
-			break;
+		if ((mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
+			|| (mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL))
+		{
+			zSTRING more = ">>";
+			this->printViewSearchBar->Print(8192 - this->printViewSearchBar->FontSize(more), y, more);
 		}
 
 		int txtSearchFilterWidth = this->printViewSearchBar->FontSize(txtSearchFilter);
@@ -537,7 +504,7 @@ namespace GOTHIC_ENGINE {
 		auto flags = this->GetFilterFlagNpcs(npc);
 		auto color = this->GetColor(flags);
 		this->vecNpcsAll.push_back(new PrintItem(pos, color, npc->name, npc->GetInstanceName(), flags));
-		
+
 		for (auto it : this->vecNpcsUniqueAll)
 		{
 			if (it->instanz == npc->instanz) {
@@ -896,6 +863,15 @@ namespace GOTHIC_ENGINE {
 		}
 	}
 
+	void ItemMap::Rotate90Degree(int& x, int& y, zVEC2& mapCenter)
+	{
+		auto newx = static_cast<int>(cos90 * (x - mapCenter[0]) - sin90 * (y - mapCenter[1]) + mapCenter[0]);
+		auto newy = static_cast<int>(sin90 * (x - mapCenter[0]) + cos90 * (y - mapCenter[1]) + mapCenter[1]);
+
+		x = newx;
+		y = newy;
+	}
+
 	void ItemMap::InitMap(HookType hook, int rotate)
 	{
 		this->OnScreen = true;
@@ -916,8 +892,6 @@ namespace GOTHIC_ENGINE {
 		world2map[1] = world2map[1] * -1.0f;
 #endif
 
-		float s = sin(RAD90);
-		float c = cos(RAD90);
 		this->ClearPrintItems();
 		auto listVobs = world->voblist->next;
 		while (listVobs)
@@ -937,8 +911,7 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			int x;
-			int y;
+			int x = 0, y = 0;
 
 #if ENGINE <= Engine_G1A
 			x = static_cast<int>((world2map[0] * vobPos[VX]) + mapCenter[0]);
@@ -952,19 +925,16 @@ namespace GOTHIC_ENGINE {
 
 			if (this->Hook == HookType::CoM && rotate)
 			{
-				auto newx = static_cast<int>(c * (x - mapCenter[0]) - s * (y - mapCenter[1]) + mapCenter[0]);
-				auto newy = static_cast<int>(s * (x - mapCenter[0]) + c * (y - mapCenter[1]) + mapCenter[1]);
-
-				x = newx;
-				y = newy;
-
-				pos.X = screen->anx(x);
-				pos.Y = screen->any(y);
+				this->Rotate90Degree(x, y, mapCenter);
 			}
-			else
+
+			pos.X = screen->anx(x);
+			pos.Y = screen->any(y);
+
+			if (this->Hook != HookType::CoM)
 			{
-				pos.X = screen->anx(x) + screen->anx((this->markX / 2));
-				pos.Y = screen->any(y) + screen->any((this->markY / 2));
+				pos.X += screen->anx((this->markX / 2));
+				pos.Y += screen->any((this->markY / 2));
 			}
 
 
@@ -1043,15 +1013,20 @@ namespace GOTHIC_ENGINE {
 			}
 
 			static auto argumentSymbol = []() -> zCPar_Symbol*
-			{
-				auto symbol = parser->GetSymbol(itemMap->indexCanStealNpcAST + 1);
-				if (!symbol || symbol->type != zPAR_TYPE_INSTANCE)
 				{
-					return nullptr;
-				}
+					if (parser->GetSymbol(itemMap->indexCanStealNpcAST)->ele != 1)
+					{
+						return nullptr;
+					}
 
-				return symbol;
-			}();
+					auto symbol = parser->GetSymbol(itemMap->indexCanStealNpcAST + 1);
+					if (!symbol || symbol->type != zPAR_TYPE_INSTANCE)
+					{
+						return nullptr;
+					}
+
+					return symbol;
+				}();
 
 			if (argumentSymbol)
 			{

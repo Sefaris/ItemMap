@@ -4,4 +4,4 @@
 // Add your methods here
 
 bool CanBeLooted_Union();
-int GetAivar(const zSTRING&);
+int GetAivar_Union(const zSTRING&);
