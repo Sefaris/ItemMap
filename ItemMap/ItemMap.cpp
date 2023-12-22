@@ -378,18 +378,17 @@ namespace GOTHIC_ENGINE {
 
 		this->printViewSearchBar->SetFontColor(GFX_COLDGREY);
 
-		ItemMapMode mode = static_cast<ItemMapMode>(this->mode);
 		zSTRING txtSearchFilter = this->GetFilterName();
 
-		if ((mode == ItemMapMode::ITEMS && this->filterItems > ItemMapFilterItems::PLANT)
-			|| (mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::DEAD))
+		if ((this->mode == ItemMapMode::ITEMS && this->filterItems > ItemMapFilterItems::PLANT)
+			|| (this->mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::DEAD))
 		{
 			zSTRING less = "<<";
 			this->printViewSearchBar->Print(0, y, less);
 		}
 
-		if ((mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
-			|| (mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL))
+		if ((this->mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
+			|| (this->mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL))
 		{
 			zSTRING more = ">>";
 			this->printViewSearchBar->Print(8192 - this->printViewSearchBar->FontSize(more), y, more);
@@ -546,11 +545,6 @@ namespace GOTHIC_ENGINE {
 		this->vecPrintItemsCurrent.clear();
 		this->vecPrintItemsUniqueCurrent.clear();
 
-		if (this->mode != ItemMapMode::ITEMS && this->mode != ItemMapMode::NPCS)
-		{
-			return;
-		}
-
 		auto search = this->search.WToA();
 
 		for (auto printItem : this->GetCurrentVectorAll())
@@ -560,12 +554,11 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			if (mode == ItemMapMode::ITEMS && this->filterItems != ItemMapFilterItems::ALL && std::get<ItemMapFilterItems>(printItem->flags) != this->filterItems)
+			if (this->mode == ItemMapMode::ITEMS && this->filterItems != ItemMapFilterItems::ALL && std::get<ItemMapFilterItems>(printItem->flags) != this->filterItems)
 			{
 				continue;
 			}
-
-			if (mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<int>(printItem->flags), this->filterNpcs))
+			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<int>(printItem->flags), this->filterNpcs))
 			{
 				continue;
 			}
@@ -580,12 +573,11 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			if (mode == ItemMapMode::ITEMS && this->filterItems != ItemMapFilterItems::ALL && std::get<ItemMapFilterItems>(printItemUnique->flags) != this->filterItems)
+			if (this->mode == ItemMapMode::ITEMS && this->filterItems != ItemMapFilterItems::ALL && std::get<ItemMapFilterItems>(printItemUnique->flags) != this->filterItems)
 			{
 				continue;
 			}
-
-			if (mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<int>(printItemUnique->flags), this->filterNpcs))
+			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<int>(printItemUnique->flags), this->filterNpcs))
 			{
 				continue;
 			}
@@ -646,8 +638,7 @@ namespace GOTHIC_ENGINE {
 			{
 				this->ResizeMarkers(++this->imgSize);
 			}
-
-			if (!ctrl && this->listPage > 0 && this->ShowList)
+			else if (!ctrl && this->listPage > 0 && this->ShowList)
 			{
 				this->listPage--;
 			}
@@ -659,8 +650,7 @@ namespace GOTHIC_ENGINE {
 			{
 				this->ResizeMarkers(--this->imgSize);
 			}
-
-			if (!ctrl && this->listPage < this->listPageMax && this->ShowList)
+			else if (!ctrl && this->listPage < this->listPageMax && this->ShowList)
 			{
 				this->listPage++;
 			}
@@ -672,15 +662,13 @@ namespace GOTHIC_ENGINE {
 			{
 				this->ResizeList(1);
 			}
-
-			if (!ctrl && this->mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
+			else if (!ctrl && this->mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
 			{
 				int filter = static_cast<int>(this->filterItems);
 				this->listPage = 0;
 				this->filterItems = static_cast<ItemMapFilterItems>(++filter);
 			}
-
-			if (!ctrl && this->mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL)
+			else if (!ctrl && this->mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL)
 			{
 				int filter = static_cast<int>(this->filterNpcs);
 				this->listPage = 0;
@@ -694,15 +682,13 @@ namespace GOTHIC_ENGINE {
 			{
 				this->ResizeList(-1);
 			}
-
-			if (!ctrl && this->mode == ItemMapMode::ITEMS && this->filterItems > ItemMapFilterItems::PLANT)
+			else if (!ctrl && this->mode == ItemMapMode::ITEMS && this->filterItems > ItemMapFilterItems::PLANT)
 			{
 				int filter = static_cast<int>(this->filterItems);
 				this->listPage = 0;
 				this->filterItems = static_cast<ItemMapFilterItems>(--filter);
 			}
-
-			if (!ctrl && this->mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::DEAD)
+			else if (!ctrl && this->mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::DEAD)
 			{
 				int filter = static_cast<int>(this->filterNpcs);
 				this->listPage = 0;
@@ -761,11 +747,9 @@ namespace GOTHIC_ENGINE {
 			}
 		}
 
-		if (this->SearchBarActive && this->ShowSearchBar)
+		if (this->SearchBarActive && this->ShowSearchBar && zinput->AnyKeyPressed())
 		{
-			BYTE keys[256];
-			memset(keys, 0, sizeof(BYTE) * 256);
-
+			BYTE keys[256] = {};
 			auto keyboardLayout = GetKeyboardLayout(0);
 
 			if (GetKeyboardState(keys) != FALSE)
@@ -923,7 +907,7 @@ namespace GOTHIC_ENGINE {
 
 			zPOS pos;
 
-			if (this->Hook == HookType::CoM && rotate)
+			if (rotate)
 			{
 				this->Rotate90Degree(x, y, mapCenter);
 			}
@@ -990,10 +974,7 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			if (std::find(pickpocketInfos.begin(), pickpocketInfos.end(), info) == pickpocketInfos.end())
-			{
-				pickpocketInfos.push_back(info);
-			}
+			pickpocketInfos.push_back(info);
 		}
 	}
 
@@ -1028,22 +1009,22 @@ namespace GOTHIC_ENGINE {
 					return symbol;
 				}();
 
-			if (argumentSymbol)
-			{
-				const auto pos = parser->GetSymbol(this->indexCanStealNpcAST)->single_intdata;
-				parser->datastack.Clear();
-
-				argumentSymbol->offset = reinterpret_cast<int>(npc);
-				parser->datastack.Push(this->indexCanStealNpcAST + 1);
-				parser->DoStack(pos);
-
-				auto ret = parser->PopDataValue();
-
-				if (ret)
+				if (argumentSymbol)
 				{
-					return true;
+					const auto pos = parser->GetSymbol(this->indexCanStealNpcAST)->single_intdata;
+					parser->datastack.Clear();
+
+					argumentSymbol->offset = reinterpret_cast<int>(npc);
+					parser->datastack.Push(this->indexCanStealNpcAST + 1);
+					parser->DoStack(pos);
+
+					auto ret = parser->PopDataValue();
+
+					if (ret)
+					{
+						return true;
+					}
 				}
-			}
 		}
 
 		for (auto info : pickpocketInfos) {
@@ -1075,10 +1056,7 @@ namespace GOTHIC_ENGINE {
 			auto info = list->data;
 			list = list->next;
 
-			if (info->pd.trade && std::find(traderInfos.begin(), traderInfos.end(), info) == traderInfos.end())
-			{
-				traderInfos.push_back(info);
-			}
+			traderInfos.push_back(info);
 		}
 	}
 
