@@ -102,9 +102,9 @@ namespace GOTHIC_ENGINE
 		"#AFFFAF",
 		"#C800C8",
 		"#FF0000",
-		"#ffff80"
+		"#FFFF80"
 #if ENGINE >= Engine_G2
-		,"#80afff"
+		,"#80AFFF"
 #endif
 	};
 
@@ -223,6 +223,9 @@ namespace GOTHIC_ENGINE
 		bool ShowSearchBar;
 		bool ShowHelp;
 		bool SearchBarActive;
+
+		bool ShowFilteredStaticColor;
+		zCOLOR colorStaticFilter;
 
 		int NPC_TYPE_FRIEND;
 

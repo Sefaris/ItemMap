@@ -104,35 +104,43 @@ ColorItemNone=#808080
 ; 
 ; Marker color for misc items [default: #808080]
 
-ColorItemDead=#000000
+ColorNpcDead=#000000
 ; 
 ; Marker color for dead npcs [default: #000000]
 
-ColorItemAngry=#FF8000
+ColorNpcAngry=#FF8000
 ; 
 ; Marker color for angry npcs [default: #FF8000]
 
-ColorItemFriendly=#00FF00
+ColorNpcFriendly=#00FF00
 ; 
 ; Marker color for friendly npcs [default: #00FF00]
 
-ColorItemParty=#AFFFAF
+ColorNpcParty=#AFFFAF
 ; 
 ; Marker color for companions [default: #AFFFAF]
 
-ColorItemHostileHuman=#C800C8
+ColorNpcHostileHuman=#C800C8
 ; 
 ; Marker color for hostile humans [default: #C800C8]
 
-ColorItemHostileMonster=#FF0000
+ColorNpcHostileMonster=#FF0000
 ; 
 ; Marker color for hostile monsters [default: #FF0000]
 
-ColorItemTrader=#ffff80
+ColorNpcTrader=#FFFF80
 ; 
-; Marker color for traders [default: #ffff80]
+; Marker color for traders [default: #FFFF80]
 
-ColorItemPickpocket=#80afff
+ColorNpcPickpocket=#80AFFF
 ; 
-; Marker color for npcs that can be pickpocketed [default: #80afff]
+; Marker color for npcs that can be pickpocketed [default: #80AFFF]
+
+ShowFilteredStaticColor=0
+; 
+; Use static color for all markers when using filter other than ALL [default: 0]
+
+ColorStaticFilter=#FFFFFF
+; 
+; Marker color used when "ShowFilteredStaticColor" is active [default: #FFFFFF]
 ```

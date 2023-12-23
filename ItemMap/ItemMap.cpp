@@ -36,6 +36,8 @@ namespace GOTHIC_ENGINE {
 
 		this->ShowTradersNoCond = false;
 
+		this->ShowFilteredStaticColor = false;
+
 		this->search = L"";
 
 		this->indexSpriteMapHandle = parser->GetIndex("SPRITEMAP_SPRITEHNDL");
@@ -112,9 +114,12 @@ namespace GOTHIC_ENGINE {
 		for (size_t i = 0; i < ColorsNpcsMax; i++)
 		{
 			this->colorsNpcs[i] = this->HexToColor(zoptions->ReadString(PluginName.data(),
-				zSTRING{ std::format("ColorItem{}", FilterNpcsNames[i].data()).c_str() },
+				zSTRING{ std::format("ColorNpc{}", FilterNpcsNames[i].data()).c_str() },
 				DefaultColorsNpcs[i].data()).ToChar());
 		}
+
+		this->ShowFilteredStaticColor = zoptions->ReadBool(PluginName.data(), "ShowFilteredStaticColor", False);
+		this->colorStaticFilter = this->HexToColor(zoptions->ReadString(PluginName.data(), "ColorStaticFilter", "#FFFFFF").ToChar());
 	}
 
 	zCOLOR ItemMap::HexToColor(std::string_view hexstring)
@@ -208,46 +213,48 @@ namespace GOTHIC_ENGINE {
 		{
 			this->SetNpcFlag(flags, ItemMapFilterNpcs::DEAD);
 		}
-
-#if ENGINE >= Engine_G2
-		if (this->CanBePickPocketed(npc))
+		else if (npc->attribute[NPC_ATR_HITPOINTS] > 0)
 		{
-			this->SetNpcFlag(flags, ItemMapFilterNpcs::PICKPOCKET);
-		}
+#if ENGINE >= Engine_G2
+			if (this->CanBePickPocketed(npc))
+			{
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::PICKPOCKET);
+			}
 #endif
 
-		if (this->CanTrade(npc))
-		{
-			this->SetNpcFlag(flags, ItemMapFilterNpcs::TRADER);
-		}
-
-		int attitude = npc->GetPermAttitude(player);
-		if (npc->IsHostile(player) || attitude == NPC_ATT_HOSTILE)
-		{
-			if (npc->guild < NPC_GIL_HUMANS)
+			if (this->CanTrade(npc))
 			{
-				this->SetNpcFlag(flags, ItemMapFilterNpcs::HOSTILEHUMAN);
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::TRADER);
 			}
-			else
+
+			int attitude = npc->GetPermAttitude(player);
+			if (npc->IsHostile(player) || attitude == NPC_ATT_HOSTILE)
 			{
-				this->SetNpcFlag(flags, ItemMapFilterNpcs::HOSTILEMONSTER);
+				if (npc->guild < NPC_GIL_HUMANS)
+				{
+					this->SetNpcFlag(flags, ItemMapFilterNpcs::HOSTILEHUMAN);
+				}
+				else
+				{
+					this->SetNpcFlag(flags, ItemMapFilterNpcs::HOSTILEMONSTER);
+				}
 			}
-		}
 
-		if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
-		{
-			this->SetNpcFlag(flags, ItemMapFilterNpcs::ANGRY);
-		}
+			if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
+			{
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::ANGRY);
+			}
 
-		zSTRING AIV_PARTYMEMBER = "AIV_PARTYMEMBER";
-		if (npc->GetAivar_Union(AIV_PARTYMEMBER))
-		{
-			this->SetNpcFlag(flags, ItemMapFilterNpcs::PARTY);
-		}
+			zSTRING AIV_PARTYMEMBER = "AIV_PARTYMEMBER";
+			if (npc->GetAivar_Union(AIV_PARTYMEMBER))
+			{
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::PARTY);
+			}
 
-		if (npc->IsFriendly(player) || npc->npcType == this->NPC_TYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
-		{
-			this->SetNpcFlag(flags, ItemMapFilterNpcs::FRIENDLY);
+			if (npc->IsFriendly(player) || npc->npcType == this->NPC_TYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
+			{
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::FRIENDLY);
+			}
 		}
 
 		return flags;
@@ -309,7 +316,19 @@ namespace GOTHIC_ENGINE {
 		for (auto printItem : this->vecPrintItemsCurrent)
 		{
 			this->printViewMarker->SetPos(printItem->pos.X - (screen->anx(this->imgSize) / 2), printItem->pos.Y - (screen->any(this->imgSize) / 2));
-			this->printViewMarker->SetColor(printItem->color);
+
+			if (this->ShowFilteredStaticColor &&
+				!(this->mode == ItemMapMode::ITEMS && this->filterItems == ItemMapFilterItems::ALL) &&
+				!(this->mode == ItemMapMode::NPCS && this->filterNpcs == ItemMapFilterNpcs::ALL)
+				)
+			{
+				this->printViewMarker->SetColor(this->colorStaticFilter);
+			}
+			else
+			{
+				this->printViewMarker->SetColor(printItem->color);
+			}
+
 			this->printViewMarker->Blit();
 		}
 		screen->RemoveItem(this->printViewMarker);
@@ -501,12 +520,18 @@ namespace GOTHIC_ENGINE {
 	void ItemMap::AddPrintNpc(oCNpc* npc, zPOS pos)
 	{
 		auto flags = this->GetFilterFlagNpcs(npc);
+
+		if (flags == 0)
+		{
+			return;
+		}
+
 		auto color = this->GetColor(flags);
 		this->vecNpcsAll.push_back(new PrintItem(pos, color, npc->name, npc->GetInstanceName(), flags));
 
 		for (auto it : this->vecNpcsUniqueAll)
 		{
-			if (it->instanz == npc->instanz) {
+			if (it->instanz == npc->instanz && std::get<int>(it->flags) == flags) {
 				it->num = it->num + 1;
 				return;
 			}
