@@ -1056,6 +1056,11 @@ namespace GOTHIC_ENGINE {
 			auto info = list->data;
 			list = list->next;
 
+			if (!info->pd.trade)
+			{
+				continue;
+			}
+
 			traderInfos.push_back(info);
 		}
 	}
