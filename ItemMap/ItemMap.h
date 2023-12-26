@@ -9,11 +9,23 @@ namespace GOTHIC_ENGINE
 	static constexpr float sin90 = 1.0f; // 90 degree sinus
 	static constexpr float cos90 = 0.0f; // 90 degree cosinus
 
+	static constexpr std::string_view textureBackground = "ITEMMAP_BACKGROUND.TGA";
+	static constexpr std::string_view textureMarker = "ITEMMAP_MARKER.TGA";
+	static constexpr std::string_view textureMarkerUp = "ITEMMAP_MARKER_UP.TGA";
+	static constexpr std::string_view textureMarkerDown = "ITEMMAP_MARKER_DOWN.TGA";
+
 	enum class HookType : int
 	{
 		Normal,
 		CoM,
 		NoHook
+	};
+
+	enum class ItemMapGroundLevel : int
+	{
+		SAME,
+		HIGHER,
+		LOWER
 	};
 
 	enum class ItemMapMode : int
@@ -77,6 +89,7 @@ namespace GOTHIC_ENGINE
 #if ENGINE >= Engine_G2
 		PICKPOCKET,
 #endif
+		NEUTRAL,
 		ALL
 	};
 	static constexpr auto ColorsNpcsMax = static_cast<size_t>(ItemMapFilterNpcs::ALL);
@@ -92,6 +105,7 @@ namespace GOTHIC_ENGINE
 #if ENGINE >= Engine_G2
 		"Pickpocket",
 #endif
+		"Neutral",
 		"All"
 	};
 
@@ -102,15 +116,17 @@ namespace GOTHIC_ENGINE
 		"#AFFFAF",
 		"#C800C8",
 		"#FF0000",
-		"#FFFF80"
+		"#FFFF80",
 #if ENGINE >= Engine_G2
-		,"#80AFFF"
+		"#80AFFF",
 #endif
+		"#696969"
 	};
 
-	static constexpr size_t HelpMax = 12;
+	static constexpr size_t HelpMax = 13;
 	static constexpr std::string_view Help[HelpMax] = {
 		"MAP KEY, ESC - Close map",
+		"TAB - On/Off Panels transparency"
 		"F1 - On/Off Search bar",
 		"F2 - On/Off Markers on map",
 		"F3 - On/Off List of unique items/npcs with total amount",
@@ -131,9 +147,10 @@ namespace GOTHIC_ENGINE
 		zSTRING name;
 		zSTRING instancename;
 		std::variant<ItemMapFilterItems, int> flags;
+		ItemMapGroundLevel groundlevel;
 
-		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, std::variant<ItemMapFilterItems, int> flags)
-			: pos(pos), color(color), name(name), instancename(instancename), flags(flags)
+		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, std::variant<ItemMapFilterItems, int> flags, ItemMapGroundLevel groundlevel)
+			: pos(pos), color(color), name(name), instancename(instancename), flags(flags), groundlevel(groundlevel)
 		{}
 	};
 
@@ -157,8 +174,8 @@ namespace GOTHIC_ENGINE
 		~ItemMap();
 		void Print();
 		void ClearPrintItems();
-		void AddPrintItem(oCItem* item, zPOS pos);
-		void AddPrintNpc(oCNpc* npc, zPOS pos);
+		void AddPrintItem(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel);
+		void AddPrintNpc(oCNpc* npc, zPOS pos, ItemMapGroundLevel groundlevel);
 		void SortUniques();
 		void RefreshLists();
 		void UpdateSettings();
@@ -226,6 +243,9 @@ namespace GOTHIC_ENGINE
 
 		bool ShowFilteredStaticColor;
 		zCOLOR colorStaticFilter;
+		bool RememberSearchInput;
+
+		bool TransparentPanels;
 
 		int NPC_TYPE_FRIEND;
 

@@ -5,18 +5,17 @@ namespace GOTHIC_ENGINE {
 	ItemMap::ItemMap()
 	{
 		this->printViewMarker = new zCView(0, 0, 0, 0);
-		zSTRING textureMarker = "ITEMMAP_MARKER.TGA";
-		this->printViewMarker->InsertBack(textureMarker);
 
-		zSTRING textureBackground = "ITEMMAP_BACKGROUND.TGA";
 		this->printViewList = new zCView(0, 0, 0, 0);
-		this->printViewList->InsertBack(textureBackground);
+		this->printViewList->InsertBack(textureBackground.data());
+		this->printViewList->SetAlphaBlendFunc(zTRnd_AlphaBlendFunc::zRND_ALPHA_FUNC_BLEND);
 
 		this->printViewSearchBar = new zCView(0, 0, 0, 0);
-		this->printViewSearchBar->InsertBack(textureBackground);
+		this->printViewSearchBar->InsertBack(textureBackground.data());
+		this->printViewSearchBar->SetAlphaBlendFunc(zTRnd_AlphaBlendFunc::zRND_ALPHA_FUNC_BLEND);
 
 		this->printViewHelp = new zCView(0, 0, 0, 0);
-		this->printViewHelp->InsertBack(textureBackground);
+		this->printViewHelp->InsertBack(textureBackground.data());
 
 		zSTRING texturePlayerMark = "L.TGA";
 		zCTexture* temp = temp->Load(texturePlayerMark, True);
@@ -35,8 +34,9 @@ namespace GOTHIC_ENGINE {
 		this->SearchBarActive = false;
 
 		this->ShowTradersNoCond = false;
-
+		this->RememberSearchInput = true;
 		this->ShowFilteredStaticColor = false;
+		this->TransparentPanels = false;
 
 		this->search = L"";
 
@@ -98,7 +98,9 @@ namespace GOTHIC_ENGINE {
 
 		this->ResizeMarkers(zoptions->ReadInt(PluginName.data(), "IconSize", 10));
 		this->listWidth = std::clamp(zoptions->ReadInt(PluginName.data(), "ListWidth", 25), 15, 100);
+		this->TransparentPanels = zoptions->ReadBool(PluginName.data(), "TransparentPanels", False);
 		this->ShowTradersNoCond = zoptions->ReadBool(PluginName.data(), "ShowTradersNoCond", False);
+		this->RememberSearchInput = zoptions->ReadBool(PluginName.data(), "RememberSearchInput", True);
 
 		this->mode = static_cast<ItemMapMode>(zoptions->ReadInt(PluginName.data(), "PrevMode", 0));
 		this->filterItems = static_cast<ItemMapFilterItems>(std::clamp(zoptions->ReadInt(PluginName.data(), "PrevFilterItems", 0), 0, static_cast<int>(ItemMapFilterItems::ALL)));
@@ -227,10 +229,17 @@ namespace GOTHIC_ENGINE {
 				this->SetNpcFlag(flags, ItemMapFilterNpcs::TRADER);
 			}
 
+			zSTRING AIV_PARTYMEMBER = "AIV_PARTYMEMBER";
+			if (npc->GetAivar_Union(AIV_PARTYMEMBER))
+			{
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::PARTY);
+			}
+
 			int attitude = npc->GetPermAttitude(player);
+
 			if (npc->IsHostile(player) || attitude == NPC_ATT_HOSTILE)
 			{
-				if (npc->guild < NPC_GIL_HUMANS)
+				if (npc->guild <= NPC_GIL_HUMANS)
 				{
 					this->SetNpcFlag(flags, ItemMapFilterNpcs::HOSTILEHUMAN);
 				}
@@ -239,21 +248,17 @@ namespace GOTHIC_ENGINE {
 					this->SetNpcFlag(flags, ItemMapFilterNpcs::HOSTILEMONSTER);
 				}
 			}
-
-			if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
+			else if (npc->IsAngry(player) || attitude == NPC_ATT_ANGRY)
 			{
 				this->SetNpcFlag(flags, ItemMapFilterNpcs::ANGRY);
 			}
-
-			zSTRING AIV_PARTYMEMBER = "AIV_PARTYMEMBER";
-			if (npc->GetAivar_Union(AIV_PARTYMEMBER))
-			{
-				this->SetNpcFlag(flags, ItemMapFilterNpcs::PARTY);
-			}
-
-			if (npc->IsFriendly(player) || npc->npcType == this->NPC_TYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
+			else if (npc->IsFriendly(player) || npc->npcType == this->NPC_TYPE_FRIEND || attitude == NPC_ATT_FRIENDLY)
 			{
 				this->SetNpcFlag(flags, ItemMapFilterNpcs::FRIENDLY);
+			}
+			else
+			{
+				this->SetNpcFlag(flags, ItemMapFilterNpcs::NEUTRAL);
 			}
 		}
 
@@ -315,6 +320,20 @@ namespace GOTHIC_ENGINE {
 		screen->InsertItem(this->printViewMarker);
 		for (auto printItem : this->vecPrintItemsCurrent)
 		{
+
+			if(printItem->groundlevel == ItemMapGroundLevel::HIGHER)
+			{
+				this->printViewMarker->InsertBack(textureMarkerUp.data());
+			}
+			else if (printItem->groundlevel == ItemMapGroundLevel::LOWER)
+			{
+				this->printViewMarker->InsertBack(textureMarkerDown.data());
+			}
+			else
+			{
+				this->printViewMarker->InsertBack(textureMarker.data());
+			}
+
 			this->printViewMarker->SetPos(printItem->pos.X - (screen->anx(this->imgSize) / 2), printItem->pos.Y - (screen->any(this->imgSize) / 2));
 
 			if (this->ShowFilteredStaticColor &&
@@ -345,6 +364,15 @@ namespace GOTHIC_ENGINE {
 		screen->InsertItem(this->printViewList);
 		this->printViewList->SetPos(0, 0);
 		this->printViewList->SetSize((8182 * this->listWidth) / 100, 8192);
+
+		if (this->TransparentPanels)
+		{
+			this->printViewList->SetTransparency(128);
+		}
+		else
+		{
+			this->printViewList->SetTransparency(255);
+		}
 
 		int fontHeight = this->printViewList->FontY();
 		size_t maxItems = (8192 / fontHeight) - 2;
@@ -391,6 +419,15 @@ namespace GOTHIC_ENGINE {
 		screen->InsertItem(this->printViewSearchBar);
 		this->printViewSearchBar->SetPos(screen->anx(static_cast<int>(this->mapCoords[0]) + ((static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2)) - 200, screen->any(static_cast<int>(this->mapCoords[1])) + 300);
 		this->printViewSearchBar->SetSize(screen->anx(static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2, screen->FontY() * 3);
+		
+		if (this->TransparentPanels)
+		{
+			this->printViewSearchBar->SetTransparency(128);
+		}
+		else
+		{
+			this->printViewSearchBar->SetTransparency(255);
+		}
 
 		int fontHeight = this->printViewSearchBar->FontY();
 		int y = 0;
@@ -500,12 +537,12 @@ namespace GOTHIC_ENGINE {
 		zrenderer->SetViewport(ScreenX, ScreenY, ScreenSX, ScreenSY);
 	}
 
-	void ItemMap::AddPrintItem(oCItem* item, zPOS pos)
+	void ItemMap::AddPrintItem(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel)
 	{
 		auto flags = this->GetFilterFlagItems(item);
 		auto color = this->GetColor(flags);
 
-		this->vecItemsAll.push_back(new PrintItem(pos, color, item->name, item->GetInstanceName(), flags));
+		this->vecItemsAll.push_back(new PrintItem(pos, color, item->name, item->GetInstanceName(), flags, groundlevel));
 
 		for (auto it : this->vecItemsUniqueAll)
 		{
@@ -517,7 +554,7 @@ namespace GOTHIC_ENGINE {
 		this->vecItemsUniqueAll.push_back(new PrintItemUnique(item->instanz, item->name, item->GetInstanceName(), item->amount, flags));
 	}
 
-	void ItemMap::AddPrintNpc(oCNpc* npc, zPOS pos)
+	void ItemMap::AddPrintNpc(oCNpc* npc, zPOS pos, ItemMapGroundLevel groundlevel)
 	{
 		auto flags = this->GetFilterFlagNpcs(npc);
 
@@ -527,7 +564,7 @@ namespace GOTHIC_ENGINE {
 		}
 
 		auto color = this->GetColor(flags);
-		this->vecNpcsAll.push_back(new PrintItem(pos, color, npc->name, npc->GetInstanceName(), flags));
+		this->vecNpcsAll.push_back(new PrintItem(pos, color, npc->name, npc->GetInstanceName(), flags, groundlevel));
 
 		for (auto it : this->vecNpcsUniqueAll)
 		{
@@ -630,6 +667,7 @@ namespace GOTHIC_ENGINE {
 
 		zoptions->WriteInt(PluginName.data(), "IconSize", this->imgSize, 0);
 		zoptions->WriteInt(PluginName.data(), "ListWidth", this->listWidth, 0);
+		zoptions->WriteBool(PluginName.data(), "TransparentPanels", this->TransparentPanels, 0);
 
 		zoptions->WriteInt(PluginName.data(), "PrevMode", static_cast<int>(this->mode), 0);
 		zoptions->WriteInt(PluginName.data(), "PrevFilterItems", static_cast<int>(this->filterItems), 0);
@@ -721,6 +759,11 @@ namespace GOTHIC_ENGINE {
 			}
 		}
 
+		if (zKeyToggled(KEY_TAB))
+		{
+			this->TransparentPanels = !this->TransparentPanels;
+		}
+
 		if (zKeyToggled(KEY_F1))
 		{
 			this->ShowSearchBar = !this->ShowSearchBar;
@@ -749,14 +792,20 @@ namespace GOTHIC_ENGINE {
 		if (zKeyToggled(KEY_F5) && this->mode != ItemMapMode::ITEMS)
 		{
 			this->listPage = 0;
-			this->search = L"";
+			if(!this->RememberSearchInput)
+			{
+				this->search = L"";
+			}
 			this->mode = ItemMapMode::ITEMS;
 		}
 
 		if (zKeyToggled(KEY_F6) && this->mode != ItemMapMode::NPCS)
 		{
 			this->listPage = 0;
-			this->search = L"";
+			if(!this->RememberSearchInput)
+			{
+				this->search = L"";
+			}
 			this->mode = ItemMapMode::NPCS;
 		}
 
@@ -887,7 +936,6 @@ namespace GOTHIC_ENGINE {
 		this->Hook = hook;
 		this->listPage = 0;
 		this->listPageMax = 0;
-		this->search = L"";
 		//player->SetMovLock(TRUE);
 
 		auto world = ogame->GetGameWorld();
@@ -900,6 +948,8 @@ namespace GOTHIC_ENGINE {
 #if ENGINE <= Engine_G1A
 		world2map[1] = world2map[1] * -1.0f;
 #endif
+
+		float playerPosY = player->GetPositionWorld()[VY];
 
 		this->ClearPrintItems();
 		auto listVobs = world->voblist->next;
@@ -929,6 +979,16 @@ namespace GOTHIC_ENGINE {
 			x = static_cast<int>(this->mapCoords[0] + (world2map[0] * (vobPos[VX] - this->worldCoords[0])));
 			y = static_cast<int>(this->mapCoords[3] - (world2map[1] * (vobPos[VZ] - this->worldCoords[1])));
 #endif
+
+			ItemMapGroundLevel groundlevel = ItemMapGroundLevel::SAME;
+			if (playerPosY - vobPos[VY] > 500.0f)
+			{
+				groundlevel = ItemMapGroundLevel::LOWER;
+			}
+			else if (playerPosY - vobPos[VY] < -500.0f)
+			{
+				groundlevel = ItemMapGroundLevel::HIGHER;
+			}
 
 			zPOS pos;
 
@@ -960,13 +1020,13 @@ namespace GOTHIC_ENGINE {
 			{
 				auto item = static_cast<oCItem*>(vob);
 
-				this->AddPrintItem(item, pos);
+				this->AddPrintItem(item, pos, groundlevel);
 			}
 			else if (vobType == zVOB_TYPE_NSC)
 			{
 				auto npc = static_cast<oCNpc*>(vob);
 
-				this->AddPrintNpc(npc, pos);
+				this->AddPrintNpc(npc, pos, groundlevel);
 			}
 		}
 
@@ -1013,7 +1073,8 @@ namespace GOTHIC_ENGINE {
 		//For Gothic 2: New Balance
 		if (this->indexCanStealNpcAST != Invalid)
 		{
-			if (npc->guild >= NPC_GIL_HUMANS)
+			//NPC_GIL_HUMANS == GIL_TPL in New Balance
+			if (npc->guild > NPC_GIL_HUMANS)
 			{
 				return false;
 			}

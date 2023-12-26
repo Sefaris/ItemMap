@@ -1,27 +1,30 @@
 # ItemMap
-In-game map with all items and npcs
+### In-game map with all items and npcs
 
-### Functionality
+## Functionality
 - Show markers on current world map for items with ability to filter by plants, melee weapons, ranged weapons, armors, documents, spells (runes/scrolls), magic items, potions, food and miscellaneous
 - Show markers on current world map for npcs with ability to filter by dead, angry, friendly, companions, hostile humans/monsters, traders and npcs that can be pickpocketed (only G2)
 - Show list of all unique items/npcs with total amount (identified by instance)
 - Search for specific item/npc by name or instance
 
-### Screenshots
+## Screenshots
+#### Help panel with controls
 ![Help panel with controls](https://i.imgur.com/1dc9TpL.png)
-
+#### All items
 ![All items](https://i.imgur.com/4BRyLyd.jpeg)
-
+#### All npcs
 ![All npcs](https://i.imgur.com/nWuCfwL.jpeg)
-
+#### Search npc by name
 ![Search npc by name](https://i.imgur.com/oUyfJ2D.jpeg)
-
+#### Search item by name
 ![Search item by name](https://i.imgur.com/1ArKF5y.jpeg)
-
+#### Search item by instance
 ![Search item by instance](https://i.imgur.com/2ITj4Bl.jpeg)
 
-### Default ini settings
-All settings besides colors and `ShowTradersNoCond` can be changed in-game (while interacting with map) and are saved after closing the map.
+## Default ini settings
+All settings besides colors, `ShowTradersNoCond`, `RememberSearchInput` and `ShowFilteredStaticColor` can be changed in-game while interacting with map and are saved after closing the map.
+`ShowTradersNoCond`, `RememberSearchInput` and `ShowFilteredStaticColor` can be changed in Gothic.ini or game menu `Union & Plugins`.
+Colors can be changed only in Gothic.ini
 ```
 [ITEMMAP]
 ShowSearchBar=1
@@ -52,6 +55,10 @@ ShowTradersNoCond=0
 ; 
 ; Show traders without checking if player fulfill the requirements (traders that trader with certain guild, on certain hours or require to complete a quest beforehand) [default: 0]
 
+RememberSearchInput=1
+; 
+; Remember search input when closing map or changing mode [default: 1]
+
 PrevMode=0
 ; 
 ; Previously used mode [default: 0 - Items]
@@ -62,7 +69,7 @@ PrevFilterItems=0
 
 PrevFilterNpcs=8
 ; 
-; Previously used filter for npcs [default: 7(G1)/8(G2) - All]
+; Previously used filter for npcs [default: 9(G1)/10(G2) - All]
 
 ColorItemPlants=#00FF00
 ; 
@@ -138,7 +145,7 @@ ColorNpcPickpocket=#80AFFF
 
 ShowFilteredStaticColor=0
 ; 
-; Use static color for all markers when using filter other than ALL [default: 0]
+; Use static color for all markers when currently active filter is other than ALL [default: 0]
 
 ColorStaticFilter=#FFFFFF
 ; 
