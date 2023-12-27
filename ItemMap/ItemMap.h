@@ -5,7 +5,7 @@ namespace GOTHIC_ENGINE
 {
 	static constexpr std::string_view PluginName = "ItemMap";
 	static constexpr std::string_view PluginVersion = "1.0.0";
-	
+
 	static constexpr float sin90 = 1.0f; // 90 degree sinus
 	static constexpr float cos90 = 0.0f; // 90 degree cosinus
 
@@ -31,7 +31,9 @@ namespace GOTHIC_ENGINE
 	enum class ItemMapMode : int
 	{
 		ITEMS,
-		NPCS
+		NPCS,
+		CONTAINERS,
+		INTERACTIVES
 	};
 
 	enum class ItemMapFilterItems : int
@@ -123,10 +125,35 @@ namespace GOTHIC_ENGINE
 		"#696969"
 	};
 
+	enum class ItemMapFilterContainers : int
+	{
+		LOCKPICK,
+		KEY_OWNED,
+		KEY_NOT_OWNED,
+		OPEN,
+		ALL
+	};
+	static constexpr auto ColorsContainersMax = static_cast<size_t>(ItemMapFilterContainers::ALL);
+
+	static constexpr std::string_view FilterContainersNames[ColorsContainersMax + 1] = {
+		"Lockpick",
+		"OwnedKey",
+		"NotOwnedKey",
+		"Open",
+		"All"
+	};
+
+	static constexpr std::string_view DefaultColorsContainers[ColorsNpcsMax] = {
+		"#FF8000",
+		"#C800C8",
+		"#FF0000",
+		"#00FF00"
+	};
+
 	static constexpr size_t HelpMax = 13;
 	static constexpr std::string_view Help[HelpMax] = {
 		"MAP KEY, ESC - Close map",
-		"TAB - On/Off Panels transparency"
+		"TAB - On/Off Transparency of panels (search and list)",
 		"F1 - On/Off Search bar",
 		"F2 - On/Off Markers on map",
 		"F3 - On/Off List of unique items/npcs with total amount",
@@ -146,10 +173,10 @@ namespace GOTHIC_ENGINE
 		zCOLOR color;
 		zSTRING name;
 		zSTRING instancename;
-		std::variant<ItemMapFilterItems, int> flags;
+		std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags;
 		ItemMapGroundLevel groundlevel;
 
-		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, std::variant<ItemMapFilterItems, int> flags, ItemMapGroundLevel groundlevel)
+		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags, ItemMapGroundLevel groundlevel)
 			: pos(pos), color(color), name(name), instancename(instancename), flags(flags), groundlevel(groundlevel)
 		{}
 	};
@@ -160,9 +187,9 @@ namespace GOTHIC_ENGINE
 		zSTRING name;
 		zSTRING instancename;
 		int num;
-		std::variant<ItemMapFilterItems, int> flags;
+		std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags;
 
-		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int num, std::variant<ItemMapFilterItems, int> flags)
+		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int num, std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags)
 			: instanz(instanz), name(name), instancename(instancename), num(num), flags(flags)
 		{}
 	};
@@ -176,6 +203,8 @@ namespace GOTHIC_ENGINE
 		void ClearPrintItems();
 		void AddPrintItem(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel);
 		void AddPrintNpc(oCNpc* npc, zPOS pos, ItemMapGroundLevel groundlevel);
+		void AddPrintContainer(oCMobContainer* container, zPOS pos, ItemMapGroundLevel groundlevel);
+		void AddPrintInteractive(oCMobInter* inter, zPOS pos, ItemMapGroundLevel groundlevel);
 		void SortUniques();
 		void RefreshLists();
 		void UpdateSettings();
@@ -184,9 +213,10 @@ namespace GOTHIC_ENGINE
 		void HandleInput();
 		void Close();
 		void InitMap(HookType hook, int rotate = 0);
-		zCOLOR GetColor(std::variant<ItemMapFilterItems, int> flags);
+		zCOLOR GetColor(std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags);
 		ItemMapFilterItems GetFilterFlagItems(oCItem* item);
 		int GetFilterFlagNpcs(oCNpc* npc);
+		ItemMapFilterContainers GetFilterFlagContainers(oCMobContainer* container);
 		HookType Hook;
 		bool OnScreen;
 		int listWidth;
@@ -199,6 +229,7 @@ namespace GOTHIC_ENGINE
 		ItemMapMode mode;
 		ItemMapFilterItems filterItems;
 		ItemMapFilterNpcs filterNpcs;
+		ItemMapFilterContainers filterContainers;
 		zVEC4 mapCoords;
 		zVEC4 worldCoords;
 
@@ -229,12 +260,17 @@ namespace GOTHIC_ENGINE
 		std::vector<PrintItemUnique*> vecItemsUniqueAll;
 		std::vector<PrintItem*> vecNpcsAll;
 		std::vector<PrintItemUnique*> vecNpcsUniqueAll;
+		std::vector<PrintItem*> vecContainersAll;
+		std::vector<PrintItemUnique*> vecContainersUniqueAll;
+		std::vector<PrintItem*> vecInteractivesAll;
+		std::vector<PrintItemUnique*> vecInteractivesUniqueAll;
 
 		std::vector<PrintItem*> vecPrintItemsCurrent;
 		std::vector<PrintItemUnique*> vecPrintItemsUniqueCurrent;
 
 		zCOLOR colorsItems[ColorsItemsMax];
 		zCOLOR colorsNpcs[ColorsNpcsMax];
+		zCOLOR colorsContainers[ColorsContainersMax];
 		bool ShowMarkers;
 		bool ShowList;
 		bool ShowSearchBar;

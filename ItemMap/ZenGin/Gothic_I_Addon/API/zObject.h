@@ -148,16 +148,24 @@ namespace Gothic_I_Addon {
     #include "zCObjectFactory.inl"
   };
 
-  template<class T>
-  T* zDYNAMIC_CAST(zCObject const* pObject) {
-      if (!pObject) {
-          return Null;
+  template<class T, class U>
+  T* zDYNAMIC_CAST(U* const pObject)
+  {
+      static_assert(std::is_base_of_v<zCObject, T> && std::is_base_of_v<zCObject, U>, "zCObject must be a base class of T and U");
+
+      if constexpr (&T::classDef != &U::classDef)
+      {
+          if (!pObject) {
+              return nullptr;
+          }
+
+          zCClassDef* pDef = pObject->_GetClassDef();
+          if (zCObject::CheckInheritance(T::classDef, pDef)) {
+              return static_cast<T*>(pObject);
+          }
       }
-      zCClassDef* pDef = pObject->_GetClassDef();
-      if (zCObject::CheckInheritance(T::classDef, pDef)) {
-          return (T*)pObject;
-      }
-      return dynamic_cast<T*>((zCObject*)pObject);
+
+      return dynamic_cast<T*>(pObject);
   }
 } // namespace Gothic_I_Addon
 

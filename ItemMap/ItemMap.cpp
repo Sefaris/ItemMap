@@ -105,6 +105,7 @@ namespace GOTHIC_ENGINE {
 		this->mode = static_cast<ItemMapMode>(zoptions->ReadInt(PluginName.data(), "PrevMode", 0));
 		this->filterItems = static_cast<ItemMapFilterItems>(std::clamp(zoptions->ReadInt(PluginName.data(), "PrevFilterItems", 0), 0, static_cast<int>(ItemMapFilterItems::ALL)));
 		this->filterNpcs = static_cast<ItemMapFilterNpcs>(std::clamp(zoptions->ReadInt(PluginName.data(), "PrevFilterNpcs", static_cast<int>(ItemMapFilterNpcs::ALL)), 0, static_cast<int>(ItemMapFilterNpcs::ALL)));
+		this->filterContainers = static_cast<ItemMapFilterContainers>(std::clamp(zoptions->ReadInt(PluginName.data(), "PrevFilterContainers", static_cast<int>(ItemMapFilterContainers::ALL)), 0, static_cast<int>(ItemMapFilterContainers::ALL)));
 
 		for (size_t i = 0; i < ColorsItemsMax; i++)
 		{
@@ -118,6 +119,13 @@ namespace GOTHIC_ENGINE {
 			this->colorsNpcs[i] = this->HexToColor(zoptions->ReadString(PluginName.data(),
 				zSTRING{ std::format("ColorNpc{}", FilterNpcsNames[i].data()).c_str() },
 				DefaultColorsNpcs[i].data()).ToChar());
+		}
+
+		for (size_t i = 0; i < ColorsContainersMax; i++)
+		{
+			this->colorsContainers[i] = this->HexToColor(zoptions->ReadString(PluginName.data(),
+				zSTRING{ std::format("ColorContainer{}", FilterContainersNames[i].data()).c_str() },
+				DefaultColorsContainers[i].data()).ToChar());
 		}
 
 		this->ShowFilteredStaticColor = zoptions->ReadBool(PluginName.data(), "ShowFilteredStaticColor", False);
@@ -142,11 +150,15 @@ namespace GOTHIC_ENGINE {
 		case ItemMapMode::ITEMS:
 			return std::format("Items - {}", FilterItemsNames[static_cast<size_t>(this->filterItems)]).c_str();
 		case ItemMapMode::NPCS:
-			return std::format("NPCs - {}", FilterNpcsNames[static_cast<size_t>(this->filterNpcs)]).c_str();;
+			return std::format("NPCs - {}", FilterNpcsNames[static_cast<size_t>(this->filterNpcs)]).c_str();
+		case ItemMapMode::CONTAINERS:
+			return std::format("Containers - {}", FilterContainersNames[static_cast<size_t>(this->filterContainers)]).c_str();
+		case ItemMapMode::INTERACTIVES:
+			return "Interactives";
 		}
 	}
 
-	zCOLOR ItemMap::GetColor(std::variant<ItemMapFilterItems, int> flags)
+	zCOLOR ItemMap::GetColor(std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags)
 	{
 		if (std::holds_alternative<ItemMapFilterItems>(flags))
 		{
@@ -161,6 +173,10 @@ namespace GOTHIC_ENGINE {
 					return this->colorsNpcs[i];
 				}
 			}
+		}
+		else if (std::holds_alternative< ItemMapFilterContainers>(flags))
+		{
+			return this->colorsContainers[static_cast<size_t>(std::get<ItemMapFilterContainers>(flags))];
 		}
 
 		return zCOLOR(128, 128, 128);
@@ -205,6 +221,30 @@ namespace GOTHIC_ENGINE {
 	{
 		int flag = 1 << static_cast<int>(filterFlag);
 		return (npcFlags & flag) == flag;
+	}
+
+	ItemMapFilterContainers ItemMap::GetFilterFlagContainers(oCMobContainer* container)
+	{
+		auto lock = zDYNAMIC_CAST<oCMobLockable>(container);
+		if (lock)
+		{
+			bool playerNeedKey = !lock->keyInstance.IsEmpty();
+			bool playerHaveKey = playerNeedKey ? player->HaveItem_Union(lock->keyInstance) : false;
+			if (playerNeedKey && playerHaveKey)
+			{
+				return ItemMapFilterContainers::KEY_OWNED;
+			}
+			else if (!lock->pickLockStr.IsEmpty())
+			{
+				return ItemMapFilterContainers::LOCKPICK;
+			}
+			else if (playerNeedKey && !playerHaveKey)
+			{
+				return ItemMapFilterContainers::KEY_NOT_OWNED;
+			}
+		}
+
+		return ItemMapFilterContainers::OPEN;
 	}
 
 	int ItemMap::GetFilterFlagNpcs(oCNpc* npc)
@@ -267,24 +307,40 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::ClearPrintItems()
 	{
-		for (auto printItem : this->vecItemsAll)
+		for (auto it : this->vecItemsAll)
 		{
-			delete printItem;
+			delete it;
+		}
+		for (auto it : this->vecItemsUniqueAll)
+		{
+			delete it;
 		}
 
-		for (auto printItemUnique : this->vecItemsUniqueAll)
+		for (auto it : this->vecNpcsAll)
 		{
-			delete printItemUnique;
+			delete it;
+		}
+		for (auto it : this->vecNpcsUniqueAll)
+		{
+			delete it;
 		}
 
-		for (auto printNpc : this->vecNpcsAll)
+		for (auto it : this->vecContainersAll)
 		{
-			delete printNpc;
+			delete it;
+		}
+		for (auto it : this->vecContainersUniqueAll)
+		{
+			delete it;
 		}
 
-		for (auto printNpcUnique : this->vecNpcsUniqueAll)
+		for (auto it : this->vecInteractivesAll)
 		{
-			delete printNpcUnique;
+			delete it;
+		}
+		for (auto it : this->vecInteractivesUniqueAll)
+		{
+			delete it;
 		}
 
 		this->vecItemsAll.clear();
@@ -292,6 +348,12 @@ namespace GOTHIC_ENGINE {
 
 		this->vecNpcsAll.clear();
 		this->vecNpcsUniqueAll.clear();
+
+		this->vecContainersAll.clear();
+		this->vecContainersUniqueAll.clear();
+
+		this->vecInteractivesAll.clear();
+		this->vecInteractivesUniqueAll.clear();
 
 		this->vecPrintItemsCurrent.clear();
 		this->vecPrintItemsUniqueCurrent.clear();
@@ -304,6 +366,14 @@ namespace GOTHIC_ENGINE {
 			});
 
 		std::sort(this->vecNpcsUniqueAll.begin(), this->vecNpcsUniqueAll.end(), [](const auto& left, const auto& right) {
+			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
+			});
+
+		std::sort(this->vecContainersUniqueAll.begin(), this->vecContainersUniqueAll.end(), [](const auto& left, const auto& right) {
+			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
+			});
+
+		std::sort(this->vecInteractivesUniqueAll.begin(), this->vecInteractivesUniqueAll.end(), [](const auto& left, const auto& right) {
 			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
 			});
 	}
@@ -321,7 +391,7 @@ namespace GOTHIC_ENGINE {
 		for (auto printItem : this->vecPrintItemsCurrent)
 		{
 
-			if(printItem->groundlevel == ItemMapGroundLevel::HIGHER)
+			if (printItem->groundlevel == ItemMapGroundLevel::HIGHER)
 			{
 				this->printViewMarker->InsertBack(textureMarkerUp.data());
 			}
@@ -338,7 +408,9 @@ namespace GOTHIC_ENGINE {
 
 			if (this->ShowFilteredStaticColor &&
 				!(this->mode == ItemMapMode::ITEMS && this->filterItems == ItemMapFilterItems::ALL) &&
-				!(this->mode == ItemMapMode::NPCS && this->filterNpcs == ItemMapFilterNpcs::ALL)
+				!(this->mode == ItemMapMode::NPCS && this->filterNpcs == ItemMapFilterNpcs::ALL) &&
+				this->mode != ItemMapMode::INTERACTIVES &&
+				this->mode != ItemMapMode::CONTAINERS
 				)
 			{
 				this->printViewMarker->SetColor(this->colorStaticFilter);
@@ -419,7 +491,7 @@ namespace GOTHIC_ENGINE {
 		screen->InsertItem(this->printViewSearchBar);
 		this->printViewSearchBar->SetPos(screen->anx(static_cast<int>(this->mapCoords[0]) + ((static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2)) - 200, screen->any(static_cast<int>(this->mapCoords[1])) + 300);
 		this->printViewSearchBar->SetSize(screen->anx(static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2, screen->FontY() * 3);
-		
+
 		if (this->TransparentPanels)
 		{
 			this->printViewSearchBar->SetTransparency(128);
@@ -436,15 +508,19 @@ namespace GOTHIC_ENGINE {
 
 		zSTRING txtSearchFilter = this->GetFilterName();
 
-		if ((this->mode == ItemMapMode::ITEMS && this->filterItems > ItemMapFilterItems::PLANT)
-			|| (this->mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::DEAD))
+		if ((this->mode == ItemMapMode::ITEMS && this->filterItems > static_cast<ItemMapFilterItems>(0))
+			|| (this->mode == ItemMapMode::NPCS && this->filterNpcs > static_cast<ItemMapFilterNpcs>(0))
+			|| (this->mode == ItemMapMode::CONTAINERS && this->filterContainers > static_cast<ItemMapFilterContainers>(0))
+			)
 		{
 			zSTRING less = "<<";
 			this->printViewSearchBar->Print(0, y, less);
 		}
 
 		if ((this->mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
-			|| (this->mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL))
+			|| (this->mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL)
+			|| (this->mode == ItemMapMode::CONTAINERS && this->filterContainers < ItemMapFilterContainers::ALL)
+			)
 		{
 			zSTRING more = ">>";
 			this->printViewSearchBar->Print(8192 - this->printViewSearchBar->FontSize(more), y, more);
@@ -576,6 +652,92 @@ namespace GOTHIC_ENGINE {
 		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(npc->instanz, npc->name, npc->GetInstanceName(), 1, flags));
 	}
 
+	void ItemMap::AddPrintInteractive(oCMobInter* inter, zPOS pos, ItemMapGroundLevel groundlevel)
+	{
+		auto color = zCOLOR(128, 128, 128);
+		zSTRING name = "";
+		zSTRING& funcName = inter->onStateFuncName;
+		if (!inter->name.IsEmpty())
+		{
+			if (auto symbol = parser->GetSymbol(inter->name))
+			{
+				if (!symbol->stringdata->IsEmpty())
+				{
+					name = symbol->stringdata;
+				}
+			}
+
+			if(name.IsEmpty())
+			{
+				name = inter->name;
+			}
+		}
+		else if (funcName.CompareI("hiddenfind") || funcName.CompareI("b_scgettreasure"))
+		{
+			name = "HIDDEN TREASURE";
+		}
+
+		if (name.IsEmpty())
+		{
+			return;
+		}
+
+		if (!inter->objectName.IsEmpty() && inter->objectName.ToInt() > 0)
+		{
+			name += zSTRING{ " (" } + inter->objectName + zSTRING{ ")" };
+		}
+
+		this->vecInteractivesAll.push_back(new PrintItem(pos, color, name, funcName, 0, groundlevel));
+
+		for (auto it : this->vecInteractivesUniqueAll)
+		{
+			if (it->name.CompareI(name)/* && it->instancename.CompareI(inter->onStateFuncName)*/) {
+				it->num = it->num + 1;
+				return;
+			}
+		}
+		this->vecInteractivesUniqueAll.push_back(new PrintItemUnique(0, name, funcName, 1, 0));
+	}
+
+	void ItemMap::AddPrintContainer(oCMobContainer* container, zPOS pos, ItemMapGroundLevel groundlevel)
+	{
+		zSTRING name = "";
+		if (!container->name.IsEmpty()) {
+			if (auto symbol = parser->GetSymbol(container->name))
+			{
+				if (!symbol->stringdata->IsEmpty())
+				{
+					name = symbol->stringdata;
+				}
+			}
+			
+			if (name.IsEmpty())
+			{
+				name = container->name;
+			}
+		}
+
+		if(name.IsEmpty())
+		{
+			name = "<unknown>";
+		}
+
+		auto flags = this->GetFilterFlagContainers(container);
+		auto color = GetColor(flags);
+
+		this->vecContainersAll.push_back(new PrintItem(pos, color, name, container->objectName, flags, groundlevel));
+
+		for (auto it : this->vecContainersUniqueAll)
+		{
+			if (it->name.CompareI(name)) {
+				it->num = it->num + 1;
+				return;
+			}
+		}
+
+		this->vecContainersUniqueAll.push_back(new PrintItemUnique(0, name, container->objectName, 1, flags));
+	}
+
 	std::vector<PrintItem*>& ItemMap::GetCurrentVectorAll()
 	{
 		switch (this->mode)
@@ -584,6 +746,10 @@ namespace GOTHIC_ENGINE {
 			return this->vecItemsAll;
 		case ItemMapMode::NPCS:
 			return this->vecNpcsAll;
+		case ItemMapMode::CONTAINERS:
+			return this->vecContainersAll;
+		case ItemMapMode::INTERACTIVES:
+			return this->vecInteractivesAll;
 		}
 
 		assert(false);
@@ -597,6 +763,10 @@ namespace GOTHIC_ENGINE {
 			return this->vecItemsUniqueAll;
 		case ItemMapMode::NPCS:
 			return this->vecNpcsUniqueAll;
+		case ItemMapMode::CONTAINERS:
+			return this->vecContainersUniqueAll;
+		case ItemMapMode::INTERACTIVES:
+			return this->vecInteractivesUniqueAll;
 		}
 
 		assert(false);
@@ -624,6 +794,10 @@ namespace GOTHIC_ENGINE {
 			{
 				continue;
 			}
+			else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers != ItemMapFilterContainers::ALL && std::get<ItemMapFilterContainers>(printItem->flags) != this->filterContainers)
+			{
+				continue;
+			}
 
 			this->vecPrintItemsCurrent.push_back(printItem);
 		}
@@ -640,6 +814,10 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<int>(printItemUnique->flags), this->filterNpcs))
+			{
+				continue;
+			}
+			else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers != ItemMapFilterContainers::ALL && std::get<ItemMapFilterContainers>(printItemUnique->flags) != this->filterContainers)
 			{
 				continue;
 			}
@@ -725,17 +903,26 @@ namespace GOTHIC_ENGINE {
 			{
 				this->ResizeList(1);
 			}
-			else if (!ctrl && this->mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
+			else if (!ctrl)
 			{
-				int filter = static_cast<int>(this->filterItems);
-				this->listPage = 0;
-				this->filterItems = static_cast<ItemMapFilterItems>(++filter);
-			}
-			else if (!ctrl && this->mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL)
-			{
-				int filter = static_cast<int>(this->filterNpcs);
-				this->listPage = 0;
-				this->filterNpcs = static_cast<ItemMapFilterNpcs>(++filter);
+				if (this->mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
+				{
+					int filter = static_cast<int>(this->filterItems);
+					this->listPage = 0;
+					this->filterItems = static_cast<ItemMapFilterItems>(++filter);
+				}
+				else if (this->mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL)
+				{
+					int filter = static_cast<int>(this->filterNpcs);
+					this->listPage = 0;
+					this->filterNpcs = static_cast<ItemMapFilterNpcs>(++filter);
+				}
+				else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers < ItemMapFilterContainers::ALL)
+				{
+					int filter = static_cast<int>(this->filterContainers);
+					this->listPage = 0;
+					this->filterContainers = static_cast<ItemMapFilterContainers>(++filter);
+				}
 			}
 		}
 
@@ -745,17 +932,26 @@ namespace GOTHIC_ENGINE {
 			{
 				this->ResizeList(-1);
 			}
-			else if (!ctrl && this->mode == ItemMapMode::ITEMS && this->filterItems > ItemMapFilterItems::PLANT)
+			else if (!ctrl)
 			{
-				int filter = static_cast<int>(this->filterItems);
-				this->listPage = 0;
-				this->filterItems = static_cast<ItemMapFilterItems>(--filter);
-			}
-			else if (!ctrl && this->mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::DEAD)
-			{
-				int filter = static_cast<int>(this->filterNpcs);
-				this->listPage = 0;
-				this->filterNpcs = static_cast<ItemMapFilterNpcs>(--filter);
+				if (this->mode == ItemMapMode::ITEMS && this->filterItems > static_cast<ItemMapFilterItems>(0))
+				{
+					int filter = static_cast<int>(this->filterItems);
+					this->listPage = 0;
+					this->filterItems = static_cast<ItemMapFilterItems>(--filter);
+				}
+				else if (this->mode == ItemMapMode::NPCS && this->filterNpcs > static_cast<ItemMapFilterNpcs>(0))
+				{
+					int filter = static_cast<int>(this->filterNpcs);
+					this->listPage = 0;
+					this->filterNpcs = static_cast<ItemMapFilterNpcs>(--filter);
+				}
+				else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers > static_cast<ItemMapFilterContainers>(0))
+				{
+					int filter = static_cast<int>(this->filterContainers);
+					this->listPage = 0;
+					this->filterContainers = static_cast<ItemMapFilterContainers>(--filter);
+				}
 			}
 		}
 
@@ -792,7 +988,7 @@ namespace GOTHIC_ENGINE {
 		if (zKeyToggled(KEY_F5) && this->mode != ItemMapMode::ITEMS)
 		{
 			this->listPage = 0;
-			if(!this->RememberSearchInput)
+			if (!this->RememberSearchInput)
 			{
 				this->search = L"";
 			}
@@ -802,11 +998,31 @@ namespace GOTHIC_ENGINE {
 		if (zKeyToggled(KEY_F6) && this->mode != ItemMapMode::NPCS)
 		{
 			this->listPage = 0;
-			if(!this->RememberSearchInput)
+			if (!this->RememberSearchInput)
 			{
 				this->search = L"";
 			}
 			this->mode = ItemMapMode::NPCS;
+		}
+
+		if (zKeyToggled(KEY_F7) && this->mode != ItemMapMode::CONTAINERS)
+		{
+			this->listPage = 0;
+			if (!this->RememberSearchInput)
+			{
+				this->search = L"";
+			}
+			this->mode = ItemMapMode::CONTAINERS;
+		}
+
+		if (zKeyToggled(KEY_F8) && this->mode != ItemMapMode::INTERACTIVES)
+		{
+			this->listPage = 0;
+			if (!this->RememberSearchInput)
+			{
+				this->search = L"";
+			}
+			this->mode = ItemMapMode::INTERACTIVES;
 		}
 
 		if (zKeyToggled(KEY_BACKSPACE) && this->SearchBarActive && this->ShowSearchBar)
@@ -958,7 +1174,7 @@ namespace GOTHIC_ENGINE {
 			auto vob = listVobs->data;
 			listVobs = listVobs->next;
 
-			if (!vob->IsValidItem_Union() && !vob->IsValidNpc_Union())
+			if (!vob->IsValidItem_Union() && !vob->IsValidNpc_Union() && !vob->IsValidInteractiveOrContainer_Union())
 			{
 				continue;
 			}
@@ -1027,6 +1243,17 @@ namespace GOTHIC_ENGINE {
 				auto npc = static_cast<oCNpc*>(vob);
 
 				this->AddPrintNpc(npc, pos, groundlevel);
+			}
+			else if (vob->GetVobType() == zVOB_TYPE_MOB)
+			{
+				if (auto container = zDYNAMIC_CAST<oCMobContainer>(vob))
+				{
+					this->AddPrintContainer(container, pos, groundlevel);
+				}
+				else if (auto inter = zDYNAMIC_CAST<oCMobInter>(vob))
+				{
+					this->AddPrintInteractive(inter, pos, groundlevel);
+				}
 			}
 		}
 

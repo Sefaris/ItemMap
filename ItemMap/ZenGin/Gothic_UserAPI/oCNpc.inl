@@ -5,3 +5,4 @@
 
 bool CanBeLooted_Union();
 int GetAivar_Union(const zSTRING&);
+bool HaveItem_Union(const zSTRING&);

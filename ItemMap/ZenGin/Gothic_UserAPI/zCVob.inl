@@ -5,4 +5,5 @@
 
 bool IsValidNpc_Union();
 bool IsValidItem_Union();
+bool IsValidInteractiveOrContainer_Union();
 zVEC3 GetRealPosition_Union();

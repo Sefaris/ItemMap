@@ -3,3 +3,4 @@
 // User API for oCMobContainer
 // Add your methods here
 
+bool IsEmpty_Union();

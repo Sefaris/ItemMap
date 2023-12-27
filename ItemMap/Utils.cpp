@@ -2,6 +2,26 @@
 // Union SOURCE file
 
 namespace GOTHIC_ENGINE {
+	bool oCMobContainer::IsEmpty_Union()
+	{
+		auto contInv = this->containList.next;
+
+		while (contInv)
+		{
+			auto item = contInv->GetData();
+			contInv = contInv->next;
+
+			if (item->instanz < 0)
+			{
+				continue;
+			}
+
+			return false;
+		}
+
+		return true;
+	}
+
 	bool zCVob::IsValidItem_Union()
 	{
 		if (this->GetVobType() != zVOB_TYPE_ITEM)
@@ -61,15 +81,44 @@ namespace GOTHIC_ENGINE {
 		return true;
 	}
 
+	bool zCVob::IsValidInteractiveOrContainer_Union()
+	{
+		if (this->GetVobType() != zVOB_TYPE_MOB)
+		{
+			return false;
+		}
+
+		if (auto container = zDYNAMIC_CAST<oCMobContainer>(this))
+		{
+			if (!container->IsEmpty_Union())
+			{
+				return true;
+			}
+		}
+		else if (auto inter = zDYNAMIC_CAST<oCMobInter>(this))
+		{
+			if (inter->onStateFuncName.IsEmpty())
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
 	zVEC3 zCVob::GetRealPosition_Union()
 	{
 		zVEC3 vobPos = { 0.0f, 0.0f, 0.0f };
 
-		if (this->GetVobType() == zVOB_TYPE_ITEM)
+		auto vobType = this->GetVobType();
+
+		if (vobType == zVOB_TYPE_ITEM || vobType == zVOB_TYPE_MOB)
 		{
 			vobPos = this->GetPositionWorld();
 		}
-		else if (this->GetVobType() == zVOB_TYPE_NSC)
+		else if (vobType == zVOB_TYPE_NSC)
 		{
 			auto npc = static_cast<oCNpc*>(this);
 
@@ -164,7 +213,8 @@ namespace GOTHIC_ENGINE {
 		return false;
 	}
 
-	int oCNpc::GetAivar_Union(const zSTRING& aivar) {
+	int oCNpc::GetAivar_Union(const zSTRING& aivar)
+	{
 		auto sym = parser->GetSymbol(aivar);
 		if (!sym)
 		{
@@ -178,5 +228,27 @@ namespace GOTHIC_ENGINE {
 		}
 
 		return this->aiscriptvars[aiv];
+	}
+
+	bool oCNpc::HaveItem_Union(const zSTRING& itemInstance)
+	{
+		int indexItem = parser->GetIndex(itemInstance);
+		if (indexItem == Invalid)
+		{
+			return false;
+		}
+
+		auto item = this->IsInInv(indexItem, 1);
+		if (!item)
+		{
+			return false;
+		}
+
+		if (item->amount < 1)
+		{
+			return false;
+		}
+
+		return true;
 	}
 }
