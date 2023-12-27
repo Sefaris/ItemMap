@@ -15,22 +15,22 @@ const int Start_PY  = 1400;
 const int Title_PY  = 450;
 const int Menu_DY   = 550;
 // Text
-const int Text_PX   = 400;  // Position at left side
+const int Text_PX   = 1500;  // Position at left side
 const int Text_SX   = 8000; // Size X
 const int Text_SY   = 750;  // Size Y
 const int Text_DY   = 120;  // Delta alignment
 // Slider
-const int Slider_PX = 6400; // Position at left side
+const int Slider_PX = 5500; // Position at left side
 const int Slider_SX = 1500; // Size X
 const int Slider_SY = 600;  // Size Y
 const int Slider_DY = 0;    // Delta alignment
 // Choice
-const int Choice_PX = 6400; // Position at left side
+const int Choice_PX = 5500; // Position at left side
 const int Choice_SX = 1500; // Size X
 const int Choice_SY = 350;  // Size Y
 const int Choice_DY = 120;  // Delta alignment
 
-const string MenuBackPic   = "UnionMenu_BackPic.tga";
+const string MenuBackPic   = "MENU_INGAME.TGA";
 const string ItemBackPic   = "";
 const string ChoiceBackPic = "MENU_CHOICE_BACK.TGA";
 const string SliderBackPic = "MENU_SLIDER_BACK.TGA";
@@ -173,13 +173,13 @@ instance MenuItem_Opt_ItemMap_RememberSearchInput(C_MENU_ITEM)
   posy += Menu_DY * CurrentMenuItem_PY + Text_DY;
   
   text[0] = Str_GetLocalizedString(
-    "RU",
+    "Запомнить текст в поиске",
     "Remember search input",
     "Sucheingabe merken",
     "Zapamiętaj frazę wyszukiwania"
   );
   text[1] = Str_GetLocalizedString(
-    "RU",
+    "Запомнить текст в поиске при закрытии карты или смене мода",
     "Remember search input when closing map or changing mode",
     "Sucheingabe merken beim Schließen der Karte oder beim Wechsel des Modus",
     "Zapamiętaj frazę wyszukiwania przy zamykaniu mapy lub zmianie trybu"
@@ -209,13 +209,13 @@ instance MenuItem_Opt_ItemMap_ShowTradersNoCond(C_MENU_ITEM)
   posy += Menu_DY * CurrentMenuItem_PY + Text_DY;
   
   text[0] = Str_GetLocalizedString(
-    "RU",
+    "Показать всех торговцев",
     "Show all traders",
     "Zeige alle Händler",
     "Pokaż wszystkich handlarzy"
   );
   text[1] = Str_GetLocalizedString(
-    "RU",
+    "Показать всех торговцев, не проверяя, соответствует ли игрок требованиям (предыдущий квест/разговор)",
     "Show all traders without checking if player meets the requirements (previous quest/conversation)",
     "Alle Händler anzeigen, ohne zu prüfen, ob der Spieler die Anforderungen erfüllt (vorherige Quest/Gespräch)",
     "Pokaż wszystkich handlarzy bez sprawdzania czy gracz spełnia wymagania (uprzedni quest/rozmowa)"
@@ -245,13 +245,13 @@ instance MenuItem_Opt_ItemMap_ShowFilteredStaticColor(C_MENU_ITEM)
   posy += Menu_DY * CurrentMenuItem_PY + Text_DY;
   
   text[0] = Str_GetLocalizedString(
-    "RU",
+    "Статический цвет для фильтров",
     "Static color for filters",
     "Statische Farbe für Filter",
     "Statyczny kolor dla filtrów"
   );
   text[1] = Str_GetLocalizedString(
-    "RU",
+    "Использовать статический цвет для всех маркеров, если текущий активный фильтр отличается от ВСЕ.",
     "Use static color for all markers if currently active filter is other than ALL",
     "Statische Farbe für alle Markierungen verwenden, wenn der derzeit aktive Filter ein anderer als ALLE ist",
     "Użyj statycznego koloru jeśli aktualnie wybrany filtr jest inny niż ALL"
