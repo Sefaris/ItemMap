@@ -46,6 +46,11 @@ namespace GOTHIC_ENGINE {
 			return false;
 		}
 
+		if (item->name.IsEmpty() && item->description.IsEmpty())
+		{
+			return false;
+		}
+
 		return true;
 	}
 

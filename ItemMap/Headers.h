@@ -7,6 +7,7 @@
 #include <map>
 #include <format>
 #include <variant>
+#include <chrono>
 #pragma region Includes
 #include "ItemMap.h"
 #include "Plugin.h"

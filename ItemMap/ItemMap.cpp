@@ -447,7 +447,7 @@ namespace GOTHIC_ENGINE {
 		}
 
 		int fontHeight = this->printViewList->FontY();
-		size_t maxItems = (8192 / fontHeight) - 2;
+		size_t maxItems = (8192 / fontHeight) - 3;
 		this->listPageMax = this->vecPrintItemsUniqueCurrent.size() / (maxItems);
 
 		if (this->listPage > this->listPageMax)
@@ -455,11 +455,11 @@ namespace GOTHIC_ENGINE {
 			this->listPage = this->listPageMax;
 		}
 
-		int marginY = (8192 - (fontHeight * (maxItems + 1))) / 2;
+		int marginY = (8192 - (fontHeight * (maxItems + 2))) / 2;
 		int x = 200, y = 0, temp = 1;
 
-		zSTRING page = zSTRING{ std::format("Page: {0}/{1}", this->listPage + 1, this->listPageMax + 1).c_str() };
-		this->printViewList->Print((8192 / 2) - (this->printViewList->FontSize(page) / 2), marginY, page);
+		zSTRING total = zSTRING{ std::format("Uniques: {} (Total count: {})", this->vecPrintItemsUniqueCurrent.size(), this->CurrentUniquesTotalCount).c_str() };
+		this->printViewList->Print((8192 / 2) - (this->printViewList->FontSize(total) / 2), marginY, total);
 
 		size_t min = this->listPage * maxItems;
 		size_t max = (min + maxItems) > this->vecPrintItemsUniqueCurrent.size() ? this->vecPrintItemsUniqueCurrent.size() : (min + maxItems);
@@ -469,12 +469,25 @@ namespace GOTHIC_ENGINE {
 
 			y = temp * fontHeight + marginY;
 
-			zSTRING txt = zSTRING{ std::format("{0} x{1}", printItemUnique->name.ToChar(), printItemUnique->num).c_str() };
+			zSTRING txt = [&printItemUnique]()->zSTRING
+				{
+					if (printItemUnique->totalamount > printItemUnique->count)
+					{
+						return zSTRING{ std::format("{0} x{1} (Total amount: {2})", printItemUnique->name.ToChar(), printItemUnique->count, printItemUnique->totalamount).c_str() };
+					}
 
-			this->printViewList->Print(x, y, txt);
+					return zSTRING{ std::format("{0} x{1}", printItemUnique->name.ToChar(), printItemUnique->count).c_str() };
+				}();
 
-			temp++;
+				this->printViewList->Print(x, y, txt);
+
+				temp++;
 		}
+
+		y = (maxItems + 1) * fontHeight + marginY;
+		zSTRING page = zSTRING{ std::format("Page: {0}/{1}", this->listPage + 1, this->listPageMax + 1).c_str() };
+		this->printViewList->Print((8192 / 2) - (this->printViewList->FontSize(page) / 2), y, page);
+
 		this->printViewList->Blit();
 		screen->RemoveItem(this->printViewList);
 	}
@@ -623,11 +636,12 @@ namespace GOTHIC_ENGINE {
 		for (auto it : this->vecItemsUniqueAll)
 		{
 			if (it->instanz == item->instanz) {
-				it->num = it->num + item->amount;
+				it->count = it->count + 1;
+				it->totalamount = it->totalamount + item->amount;
 				return;
 			}
 		}
-		this->vecItemsUniqueAll.push_back(new PrintItemUnique(item->instanz, item->name, item->GetInstanceName(), item->amount, flags));
+		this->vecItemsUniqueAll.push_back(new PrintItemUnique(item->instanz, item->name, item->GetInstanceName(), 1, item->amount, flags));
 	}
 
 	void ItemMap::AddPrintNpc(oCNpc* npc, zPOS pos, ItemMapGroundLevel groundlevel)
@@ -645,11 +659,11 @@ namespace GOTHIC_ENGINE {
 		for (auto it : this->vecNpcsUniqueAll)
 		{
 			if (it->instanz == npc->instanz && std::get<int>(it->flags) == flags) {
-				it->num = it->num + 1;
+				it->count = it->count + 1;
 				return;
 			}
 		}
-		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(npc->instanz, npc->name, npc->GetInstanceName(), 1, flags));
+		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(npc->instanz, npc->name, npc->GetInstanceName(), 1, 1, flags));
 	}
 
 	void ItemMap::AddPrintInteractive(oCMobInter* inter, zPOS pos, ItemMapGroundLevel groundlevel)
@@ -667,7 +681,7 @@ namespace GOTHIC_ENGINE {
 				}
 			}
 
-			if(name.IsEmpty())
+			if (name.IsEmpty())
 			{
 				name = inter->name;
 			}
@@ -692,11 +706,11 @@ namespace GOTHIC_ENGINE {
 		for (auto it : this->vecInteractivesUniqueAll)
 		{
 			if (it->name.CompareI(name)/* && it->instancename.CompareI(inter->onStateFuncName)*/) {
-				it->num = it->num + 1;
+				it->count = it->count + 1;
 				return;
 			}
 		}
-		this->vecInteractivesUniqueAll.push_back(new PrintItemUnique(0, name, funcName, 1, 0));
+		this->vecInteractivesUniqueAll.push_back(new PrintItemUnique(0, name, funcName, 1, 1, 0));
 	}
 
 	void ItemMap::AddPrintContainer(oCMobContainer* container, zPOS pos, ItemMapGroundLevel groundlevel)
@@ -710,14 +724,14 @@ namespace GOTHIC_ENGINE {
 					name = symbol->stringdata;
 				}
 			}
-			
+
 			if (name.IsEmpty())
 			{
 				name = container->name;
 			}
 		}
 
-		if(name.IsEmpty())
+		if (name.IsEmpty())
 		{
 			name = "<unknown>";
 		}
@@ -730,12 +744,12 @@ namespace GOTHIC_ENGINE {
 		for (auto it : this->vecContainersUniqueAll)
 		{
 			if (it->name.CompareI(name)) {
-				it->num = it->num + 1;
+				it->count = it->count + 1;
 				return;
 			}
 		}
 
-		this->vecContainersUniqueAll.push_back(new PrintItemUnique(0, name, container->objectName, 1, flags));
+		this->vecContainersUniqueAll.push_back(new PrintItemUnique(0, name, container->objectName, 1, 1, flags));
 	}
 
 	std::vector<PrintItem*>& ItemMap::GetCurrentVectorAll()
@@ -802,6 +816,7 @@ namespace GOTHIC_ENGINE {
 			this->vecPrintItemsCurrent.push_back(printItem);
 		}
 
+		this->CurrentUniquesTotalCount = 0;
 		for (auto printItemUnique : this->GetCurrentVectorUniques())
 		{
 			if (!search.IsEmpty() && !printItemUnique->name.HasWordI(search) && !printItemUnique->instancename.HasWordI(search))
@@ -822,6 +837,7 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
+			this->CurrentUniquesTotalCount = this->CurrentUniquesTotalCount + printItemUnique->count;
 			this->vecPrintItemsUniqueCurrent.push_back(printItemUnique);
 		}
 	}
@@ -829,6 +845,7 @@ namespace GOTHIC_ENGINE {
 	void ItemMap::Close()
 	{
 		//player->SetMovLock(FALSE);
+		this->LastInit = std::chrono::high_resolution_clock::now();
 		this->OnScreen = false;
 		this->ClearPrintItems();
 		this->Hook = HookType::NoHook;
@@ -1073,6 +1090,89 @@ namespace GOTHIC_ENGINE {
 		return;
 	}
 
+	bool ItemMap::TryInitMap(oCViewDocument* document)
+	{
+		oCViewDocumentMap* docMap = dynamic_cast<oCViewDocumentMap*>(document);
+
+		if (!docMap)
+		{
+			return false;
+		}
+
+		if (!docMap->ViewPageMap)
+		{
+			return false;
+		}
+
+		zSTRING mapLevelName = docMap->Level;
+		mapLevelName.Replace("/", "\\");
+		zSTRING worldLevelName = ogame->GetGameWorld()->GetWorldFilename();
+		worldLevelName.Replace("/", "\\");
+
+		if (!worldLevelName.CompareI(mapLevelName))
+		{
+			return false;
+		}
+
+		auto mapView = docMap->ViewPageMap;
+		auto mapPos = mapView->PixelPosition;
+		auto mapSize = mapView->PixelSize;
+
+		float TopX = static_cast<float>(mapPos.X);
+		float TopY = static_cast<float>(mapPos.Y);
+		float BottomX = static_cast<float>(TopX + mapSize.X);
+		float BottomY = static_cast<float>(TopY + mapSize.Y);
+
+		itemMap->mapCoords = zVEC4(TopX, TopY, BottomX, BottomY);
+
+		auto& worldBox = ogame->GetGameWorld()->bspTree.bspRoot->bbox3D;
+		itemMap->worldCoords = { 0, 0, 0, 0 };
+
+#if ENGINE >= Engine_G2
+		itemMap->worldCoords[0] = docMap->LevelCoords[0];
+		itemMap->worldCoords[1] = docMap->LevelCoords[3];
+		itemMap->worldCoords[2] = docMap->LevelCoords[2];
+		itemMap->worldCoords[3] = docMap->LevelCoords[1];
+#endif
+
+		if (itemMap->worldCoords.Length() == 0.0f)
+		{
+			itemMap->worldCoords[0] = worldBox.mins[0];
+			itemMap->worldCoords[1] = worldBox.mins[2];
+			itemMap->worldCoords[2] = worldBox.maxs[0];
+			itemMap->worldCoords[3] = worldBox.maxs[2];
+		}
+
+		itemMap->InitMap(HookType::Normal);
+
+		return true;
+	}
+
+	void ItemMap::InitMapHack()
+	{
+		auto now = std::chrono::high_resolution_clock::now();
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(now - this->LastInit) < std::chrono::milliseconds(500))
+		{
+			return;
+		}
+
+		if (!this->OnScreen && this->Hook == HookType::NoHook)
+		{
+			auto& docMan = oCDocumentManager::GetDocumentManager();
+			auto docList = docMan.ListDocuments->next;
+
+			while (docList)
+			{
+				if (this->TryInitMap(docList->GetData()))
+				{
+					return;
+				}
+
+				docList = docList->next;
+			}
+		}
+	}
+
 	void ItemMap::CoMHack()
 	{
 		if (!this->OnScreen && this->Hook == HookType::NoHook)
@@ -1148,6 +1248,11 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::InitMap(HookType hook, int rotate)
 	{
+		if (ogame->singleStep || ogame->pause_screen)
+		{
+			return;
+		}
+
 		this->OnScreen = true;
 		this->Hook = hook;
 		this->listPage = 0;

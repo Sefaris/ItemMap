@@ -186,11 +186,12 @@ namespace GOTHIC_ENGINE
 		int instanz;
 		zSTRING name;
 		zSTRING instancename;
-		int num;
+		int count;
+		int totalamount;
 		std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags;
 
-		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int num, std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags)
-			: instanz(instanz), name(name), instancename(instancename), num(num), flags(flags)
+		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int count, int totalamount, std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags)
+			: instanz(instanz), name(name), instancename(instancename), count(count), totalamount(totalamount), flags(flags)
 		{}
 	};
 
@@ -212,6 +213,7 @@ namespace GOTHIC_ENGINE
 		void ResizeList(int size);
 		void HandleInput();
 		void Close();
+		bool TryInitMap(oCViewDocument* document);
 		void InitMap(HookType hook, int rotate = 0);
 		zCOLOR GetColor(std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags);
 		ItemMapFilterItems GetFilterFlagItems(oCItem* item);
@@ -237,6 +239,9 @@ namespace GOTHIC_ENGINE
 		void GetPickPockets();
 #endif
 		void GetTraders();
+
+		void InitMapHack();
+		std::chrono::high_resolution_clock::time_point LastInit;
 
 		//For CoM ikarus maps
 		void CoMHack();
@@ -267,6 +272,7 @@ namespace GOTHIC_ENGINE
 
 		std::vector<PrintItem*> vecPrintItemsCurrent;
 		std::vector<PrintItemUnique*> vecPrintItemsUniqueCurrent;
+		int CurrentUniquesTotalCount;
 
 		zCOLOR colorsItems[ColorsItemsMax];
 		zCOLOR colorsNpcs[ColorsNpcsMax];
