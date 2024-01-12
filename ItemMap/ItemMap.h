@@ -127,6 +127,7 @@ namespace GOTHIC_ENGINE
 
 	enum class ItemMapFilterContainers : int
 	{
+		ITEMS,
 		LOCKPICK,
 		KEY_OWNED,
 		KEY_NOT_OWNED,
@@ -136,6 +137,7 @@ namespace GOTHIC_ENGINE
 	static constexpr auto ColorsContainersMax = static_cast<size_t>(ItemMapFilterContainers::ALL);
 
 	static constexpr std::string_view FilterContainersNames[ColorsContainersMax + 1] = {
+		"ItemsInContainers",
 		"Lockpick",
 		"OwnedKey",
 		"NotOwnedKey",
@@ -144,6 +146,7 @@ namespace GOTHIC_ENGINE
 	};
 
 	static constexpr std::string_view DefaultColorsContainers[ColorsNpcsMax] = {
+		"#FFFFFF",
 		"#FF8000",
 		"#C800C8",
 		"#FF0000",
@@ -204,6 +207,7 @@ namespace GOTHIC_ENGINE
 		void ClearPrintItems();
 		void AddPrintItem(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel);
 		void AddPrintNpc(oCNpc* npc, zPOS pos, ItemMapGroundLevel groundlevel);
+		void AddPrintItemInContainer(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel, zCOLOR color);
 		void AddPrintContainer(oCMobContainer* container, zPOS pos, ItemMapGroundLevel groundlevel);
 		void AddPrintInteractive(oCMobInter* inter, zPOS pos, ItemMapGroundLevel groundlevel);
 		void SortUniques();
@@ -267,6 +271,8 @@ namespace GOTHIC_ENGINE
 		std::vector<PrintItemUnique*> vecNpcsUniqueAll;
 		std::vector<PrintItem*> vecContainersAll;
 		std::vector<PrintItemUnique*> vecContainersUniqueAll;
+		std::vector<PrintItem*> vecItemsInContainersAll;
+		std::vector<PrintItemUnique*> vecItemsInContainersUniqueAll;
 		std::vector<PrintItem*> vecInteractivesAll;
 		std::vector<PrintItemUnique*> vecInteractivesUniqueAll;
 

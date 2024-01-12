@@ -334,6 +334,15 @@ namespace GOTHIC_ENGINE {
 			delete it;
 		}
 
+		for (auto it : this->vecItemsInContainersAll)
+		{
+			delete it;
+		}
+		for (auto it : this->vecItemsInContainersUniqueAll)
+		{
+			delete it;
+		}
+
 		for (auto it : this->vecInteractivesAll)
 		{
 			delete it;
@@ -351,6 +360,9 @@ namespace GOTHIC_ENGINE {
 
 		this->vecContainersAll.clear();
 		this->vecContainersUniqueAll.clear();
+
+		this->vecItemsInContainersAll.clear();
+		this->vecItemsInContainersUniqueAll.clear();
 
 		this->vecInteractivesAll.clear();
 		this->vecInteractivesUniqueAll.clear();
@@ -370,6 +382,10 @@ namespace GOTHIC_ENGINE {
 			});
 
 		std::sort(this->vecContainersUniqueAll.begin(), this->vecContainersUniqueAll.end(), [](const auto& left, const auto& right) {
+			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
+			});
+
+		std::sort(this->vecItemsInContainersUniqueAll.begin(), this->vecItemsInContainersUniqueAll.end(), [](const auto& left, const auto& right) {
 			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
 			});
 
@@ -670,7 +686,8 @@ namespace GOTHIC_ENGINE {
 	{
 		auto color = zCOLOR(128, 128, 128);
 		zSTRING name = "";
-		zSTRING& funcName = inter->onStateFuncName;
+		auto funcName = inter->onStateFuncName;
+		funcName.Lower();
 		if (!inter->name.IsEmpty())
 		{
 			if (auto symbol = parser->GetSymbol(inter->name))
@@ -686,7 +703,7 @@ namespace GOTHIC_ENGINE {
 				name = inter->name;
 			}
 		}
-		else if (funcName.CompareI("hiddenfind") || funcName.CompareI("b_scgettreasure"))
+		else if (funcName.StartWith("hiddenfind") || funcName.Compare("b_scgettreasure"))
 		{
 			name = "HIDDEN TREASURE";
 		}
@@ -711,6 +728,21 @@ namespace GOTHIC_ENGINE {
 			}
 		}
 		this->vecInteractivesUniqueAll.push_back(new PrintItemUnique(0, name, funcName, 1, 1, 0));
+	}
+
+	void ItemMap::AddPrintItemInContainer(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel, zCOLOR color)
+	{
+		this->vecItemsInContainersAll.push_back(new PrintItem(pos, color, item->name, item->GetInstanceName(), 0, groundlevel));
+
+		for (auto it : this->vecItemsInContainersUniqueAll)
+		{
+			if (it->instanz == item->instanz) {
+				it->count = it->count + 1;
+				it->totalamount = it->totalamount + item->amount;
+				return;
+			}
+		}
+		this->vecItemsInContainersUniqueAll.push_back(new PrintItemUnique(item->instanz, item->name, item->GetInstanceName(), 1, item->amount, 0));
 	}
 
 	void ItemMap::AddPrintContainer(oCMobContainer* container, zPOS pos, ItemMapGroundLevel groundlevel)
@@ -739,11 +771,25 @@ namespace GOTHIC_ENGINE {
 		auto flags = this->GetFilterFlagContainers(container);
 		auto color = GetColor(flags);
 
+		auto containerInv = container->containList.next;
+		while (containerInv)
+		{
+			auto item = containerInv->GetData();
+			containerInv = containerInv->next;
+
+			if (item->instanz < 0)
+			{
+				continue;
+			}
+
+			this->AddPrintItemInContainer(item, pos, groundlevel, color);
+		}
+
 		this->vecContainersAll.push_back(new PrintItem(pos, color, name, container->objectName, flags, groundlevel));
 
 		for (auto it : this->vecContainersUniqueAll)
 		{
-			if (it->name.CompareI(name)) {
+			if (it->name.CompareI(name) && std::get<ItemMapFilterContainers>(it->flags) == flags) {
 				it->count = it->count + 1;
 				return;
 			}
@@ -761,6 +807,10 @@ namespace GOTHIC_ENGINE {
 		case ItemMapMode::NPCS:
 			return this->vecNpcsAll;
 		case ItemMapMode::CONTAINERS:
+			if (this->filterContainers == ItemMapFilterContainers::ITEMS)
+			{
+				return this->vecItemsInContainersAll;
+			}
 			return this->vecContainersAll;
 		case ItemMapMode::INTERACTIVES:
 			return this->vecInteractivesAll;
@@ -778,6 +828,10 @@ namespace GOTHIC_ENGINE {
 		case ItemMapMode::NPCS:
 			return this->vecNpcsUniqueAll;
 		case ItemMapMode::CONTAINERS:
+			if (this->filterContainers == ItemMapFilterContainers::ITEMS)
+			{
+				return this->vecItemsInContainersUniqueAll;
+			}
 			return this->vecContainersUniqueAll;
 		case ItemMapMode::INTERACTIVES:
 			return this->vecInteractivesUniqueAll;
@@ -808,7 +862,7 @@ namespace GOTHIC_ENGINE {
 			{
 				continue;
 			}
-			else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers != ItemMapFilterContainers::ALL && std::get<ItemMapFilterContainers>(printItem->flags) != this->filterContainers)
+			else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers > ItemMapFilterContainers::ITEMS && this->filterContainers < ItemMapFilterContainers::ALL && std::get<ItemMapFilterContainers>(printItem->flags) != this->filterContainers)
 			{
 				continue;
 			}
@@ -832,7 +886,7 @@ namespace GOTHIC_ENGINE {
 			{
 				continue;
 			}
-			else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers != ItemMapFilterContainers::ALL && std::get<ItemMapFilterContainers>(printItemUnique->flags) != this->filterContainers)
+			else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers > ItemMapFilterContainers::ITEMS && this->filterContainers < ItemMapFilterContainers::ALL && std::get<ItemMapFilterContainers>(printItemUnique->flags) != this->filterContainers)
 			{
 				continue;
 			}
@@ -867,6 +921,7 @@ namespace GOTHIC_ENGINE {
 		zoptions->WriteInt(PluginName.data(), "PrevMode", static_cast<int>(this->mode), 0);
 		zoptions->WriteInt(PluginName.data(), "PrevFilterItems", static_cast<int>(this->filterItems), 0);
 		zoptions->WriteInt(PluginName.data(), "PrevFilterNpcs", static_cast<int>(this->filterNpcs), 0);
+		zoptions->WriteInt(PluginName.data(), "PrevFilterContainers", static_cast<int>(this->filterContainers), 0);
 	}
 
 	void ItemMap::HandleInput()

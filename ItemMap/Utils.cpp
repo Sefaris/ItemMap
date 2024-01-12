@@ -133,7 +133,9 @@ namespace GOTHIC_ENGINE {
 			}
 			else
 			{
-				if (npc->state.rtnNow && !npc->state.rtnNow->wpname.IsEmpty() && !npc->state.rtnNow->wpname.CompareI("TOT"))
+				if (npc->state.rtnNow && !npc->state.rtnNow->wpname.IsEmpty() && 
+					!npc->state.rtnNow->wpname.StartWith("TOT_") && 
+					!npc->state.rtnNow->wpname.HasWordI("_HWN_"))
 				{
 					if (auto wp = ogame->GetGameWorld()->wayNet->GetWaypoint(npc->state.rtnNow->wpname))
 					{
