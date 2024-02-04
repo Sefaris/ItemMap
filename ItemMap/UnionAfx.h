@@ -17,6 +17,13 @@ extern "C" {
   #include <time.h>
 }
 
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
 
 #pragma comment (lib, "Psapi.lib")
 #pragma comment (lib, "Shw32.lib")

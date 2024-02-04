@@ -1420,8 +1420,8 @@ namespace Gothic_I_Addon {
         zCLine2D line3 = line2.Dot( vx_multiplier );
 
         float vy_mid = line3[VB][VY];
-        float vy_min = min( line1[VA][VY], line1[VB][VY] );
-        float vy_max = max( line1[VA][VY], line1[VB][VY] );
+        float vy_min = std::min( line1[VA][VY], line1[VB][VY] );
+        float vy_max = std::max( line1[VA][VY], line1[VB][VY] );
 
         if( vy_mid >= vy_min && vy_mid <= vy_max ) {
           if( intersec )

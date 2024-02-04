@@ -977,23 +977,17 @@ namespace GOTHIC_ENGINE {
 			}
 			else if (!ctrl)
 			{
-				if (this->mode == ItemMapMode::ITEMS && this->filterItems < ItemMapFilterItems::ALL)
+				if (this->mode == ItemMapMode::ITEMS)
 				{
-					int filter = static_cast<int>(this->filterItems);
-					this->listPage = 0;
-					this->filterItems = static_cast<ItemMapFilterItems>(++filter);
+					CheckFilterRange<FilterOperation::INCREMENT>(this->filterItems);
 				}
-				else if (this->mode == ItemMapMode::NPCS && this->filterNpcs < ItemMapFilterNpcs::ALL)
+				else if (this->mode == ItemMapMode::NPCS)
 				{
-					int filter = static_cast<int>(this->filterNpcs);
-					this->listPage = 0;
-					this->filterNpcs = static_cast<ItemMapFilterNpcs>(++filter);
+					CheckFilterRange<FilterOperation::INCREMENT>(this->filterNpcs);
 				}
-				else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers < ItemMapFilterContainers::ALL)
+				else if (this->mode == ItemMapMode::CONTAINERS)
 				{
-					int filter = static_cast<int>(this->filterContainers);
-					this->listPage = 0;
-					this->filterContainers = static_cast<ItemMapFilterContainers>(++filter);
+					CheckFilterRange<FilterOperation::INCREMENT>(this->filterContainers);
 				}
 			}
 		}
@@ -1006,23 +1000,17 @@ namespace GOTHIC_ENGINE {
 			}
 			else if (!ctrl)
 			{
-				if (this->mode == ItemMapMode::ITEMS && this->filterItems > static_cast<ItemMapFilterItems>(0))
+				if (this->mode == ItemMapMode::ITEMS)
 				{
-					int filter = static_cast<int>(this->filterItems);
-					this->listPage = 0;
-					this->filterItems = static_cast<ItemMapFilterItems>(--filter);
+					CheckFilterRange<FilterOperation::DECREMENT>(this->filterItems);
 				}
-				else if (this->mode == ItemMapMode::NPCS && this->filterNpcs > static_cast<ItemMapFilterNpcs>(0))
+				else if (this->mode == ItemMapMode::NPCS)
 				{
-					int filter = static_cast<int>(this->filterNpcs);
-					this->listPage = 0;
-					this->filterNpcs = static_cast<ItemMapFilterNpcs>(--filter);
+					CheckFilterRange<FilterOperation::DECREMENT>(this->filterNpcs);
 				}
-				else if (this->mode == ItemMapMode::CONTAINERS && this->filterContainers > static_cast<ItemMapFilterContainers>(0))
+				else if (this->mode == ItemMapMode::CONTAINERS)
 				{
-					int filter = static_cast<int>(this->filterContainers);
-					this->listPage = 0;
-					this->filterContainers = static_cast<ItemMapFilterContainers>(--filter);
+					CheckFilterRange<FilterOperation::DECREMENT>(this->filterContainers);
 				}
 			}
 		}

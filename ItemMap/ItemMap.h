@@ -21,6 +21,12 @@ namespace GOTHIC_ENGINE
 		NoHook
 	};
 
+	enum class FilterOperation
+	{
+		INCREMENT,
+		DECREMENT
+	};
+
 	enum class ItemMapGroundLevel : int
 	{
 		SAME,
@@ -145,7 +151,7 @@ namespace GOTHIC_ENGINE
 		"All"
 	};
 
-	static constexpr std::string_view DefaultColorsContainers[ColorsNpcsMax] = {
+	static constexpr std::string_view DefaultColorsContainers[ColorsContainersMax] = {
 		"#FFFFFF",
 		"#FF8000",
 		"#C800C8",
@@ -153,7 +159,18 @@ namespace GOTHIC_ENGINE
 		"#00FF00"
 	};
 
-	static constexpr size_t HelpMax = 13;
+	template<FilterOperation op>
+	void CheckFilterRange(auto& enumFilter)
+	{
+		using EnumType = std::decay_t<decltype(enumFilter)>;
+		int filter = static_cast<int>(enumFilter);
+
+		filter = op == FilterOperation::INCREMENT ? std::min(filter + 1, static_cast<int>(EnumType::ALL)) : std::max(filter - 1, 0);
+
+		enumFilter = static_cast<EnumType>(filter);
+	}
+
+	static constexpr size_t HelpMax = 15;
 	static constexpr std::string_view Help[HelpMax] = {
 		"MAP KEY, ESC - Close map",
 		"TAB - On/Off Transparency of panels (search and list)",
