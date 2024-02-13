@@ -170,7 +170,7 @@ namespace GOTHIC_ENGINE
 		enumFilter = static_cast<EnumType>(filter);
 	}
 
-	static constexpr size_t HelpMax = 15;
+	static constexpr size_t HelpMax = 13;
 	static constexpr std::string_view Help[HelpMax] = {
 		"MAP KEY, ESC - Close map",
 		"TAB - On/Off Transparency of panels (search and list)",
