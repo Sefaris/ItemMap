@@ -4,7 +4,7 @@
 namespace GOTHIC_ENGINE
 {
 	static constexpr std::string_view PluginName = "ItemMap";
-	static constexpr std::string_view PluginVersion = "1.0.0";
+	static constexpr std::string_view PluginVersion = "1.0.1";
 
 	static constexpr float sin90 = 1.0f; // 90 degree sinus
 	static constexpr float cos90 = 0.0f; // 90 degree cosinus
@@ -170,7 +170,7 @@ namespace GOTHIC_ENGINE
 		enumFilter = static_cast<EnumType>(filter);
 	}
 
-	static constexpr size_t HelpMax = 13;
+	static constexpr size_t HelpMax = 15;
 	static constexpr std::string_view Help[HelpMax] = {
 		"MAP KEY, ESC - Close map",
 		"TAB - On/Off Transparency of panels (search and list)",
@@ -180,6 +180,8 @@ namespace GOTHIC_ENGINE
 		"F4 - On/Off This help screen :)",
 		"F5 - Switch category to Items",
 		"F6 - Switch category to NPCs",
+		"F7 - Switch category to Containers",
+		"F8 - Switch category to Interactives",
 		"Shift + Backspace - Clear search bar (if active)",
 		"Arrow Left/Right - Change filter",
 		"Arrow Up/Down - Change page on list (if visible)",

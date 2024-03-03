@@ -517,9 +517,15 @@ namespace GOTHIC_ENGINE {
 
 		this->printViewSearchBar->ClrPrintwin();
 
+		int TopX, TopY, SizeX, SizeY;
+		TopX = std::clamp(screen->anx(static_cast<int>(this->mapCoords[0]) + ((static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2)) - 200, 0, 8192);
+		TopY = std::clamp(screen->any(static_cast<int>(this->mapCoords[1])) + 300, 0, 8192);
+		SizeX = screen->anx(static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2;
+		SizeY = screen->FontY() * 3;
+
 		screen->InsertItem(this->printViewSearchBar);
-		this->printViewSearchBar->SetPos(screen->anx(static_cast<int>(this->mapCoords[0]) + ((static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2)) - 200, screen->any(static_cast<int>(this->mapCoords[1])) + 300);
-		this->printViewSearchBar->SetSize(screen->anx(static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) / 2, screen->FontY() * 3);
+		this->printViewSearchBar->SetPos(TopX, TopY);
+		this->printViewSearchBar->SetSize(SizeX, SizeY);
 
 		if (this->TransparentPanels)
 		{
@@ -588,9 +594,15 @@ namespace GOTHIC_ENGINE {
 
 		this->printViewHelp->ClrPrintwin();
 
+		int TopX, TopY, SizeX, SizeY;
+		TopX = std::clamp(screen->anx(static_cast<int>(this->mapCoords[0])) + 250, 0, 8192);
+		SizeX = screen->anx(static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) - 500;
+		SizeY = std::clamp(static_cast<int>(screen->FontY() * (HelpMax * 2)), 0, 8192);
+		TopY = (8192 - SizeY) / 2;
+
 		screen->InsertItem(this->printViewHelp);
-		this->printViewHelp->SetPos(screen->anx(static_cast<int>(this->mapCoords[0])) + 250, screen->any(static_cast<int>(this->mapCoords[1])) + 1000);
-		this->printViewHelp->SetSize(screen->anx(static_cast<int>(this->mapCoords[2]) - static_cast<int>(this->mapCoords[0])) - 500, 6144);
+		this->printViewHelp->SetPos(TopX, TopY);
+		this->printViewHelp->SetSize(SizeX, SizeY);
 
 		int margin = 200;
 
