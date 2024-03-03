@@ -1,11 +1,13 @@
 # ItemMap
-### In-game map with all items and npcs
+### Plugin shows on the in-game map locations of all items, npcs, chests and other objects
 
 ## Functionality
-- Show markers on current world map for items with ability to filter by plants, melee weapons, ranged weapons, armors, documents, spells (runes/scrolls), magic items, potions, food and miscellaneous
-- Show markers on current world map for npcs with ability to filter by dead, angry, friendly, companions, hostile humans/monsters, traders and npcs that can be pickpocketed (only G2)
-- Show list of all unique items/npcs with total amount (identified by instance)
-- Search for specific item/npc by name or instance
+- Show markers on map for items with ability to filter by plants, melee weapons, ranged weapons, armors, documents, spells (runes/scrolls), magic items, potions, food and miscellaneous
+- Show markers on map for npcs with ability to filter by dead, angry, friendly, companions, hostile humans/monsters, traders and npcs that can be pickpocketed (only G2)
+- Show markers on map for containers with ability to filter by locked (picklock/key owned by player/key not owned by player), open
+- Show markers on map for items that are in containers
+- Show list of all unique objects and their total amount
+- Search for specific object by name or instance
 
 ## Screenshots
 #### Help panel with controls
