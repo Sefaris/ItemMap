@@ -6,6 +6,7 @@
 - Show markers on map for npcs with ability to filter by dead, angry, friendly, companions, hostile humans/monsters, traders and npcs that can be pickpocketed (only G2)
 - Show markers on map for containers with ability to filter by locked (picklock/key owned by player/key not owned by player), open
 - Show markers on map for items that are in containers
+- Show markers on map for mobsi (interactive objects) that have a function
 - Show list of all unique objects and their total amount
 - Search for specific object by name or instance
 
