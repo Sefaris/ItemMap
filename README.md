@@ -12,7 +12,7 @@
 
 ## Screenshots
 #### Help panel with controls
-![Help panel with controls](https://i.imgur.com/1dc9TpL.png)
+![Help panel with controls](https://i.imgur.com/Rmqu9EV.png)
 #### All items
 ![All items](https://i.imgur.com/4BRyLyd.jpeg)
 #### All npcs
