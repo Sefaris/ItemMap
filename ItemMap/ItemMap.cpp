@@ -174,7 +174,7 @@ namespace GOTHIC_ENGINE {
 				}
 			}
 		}
-		else if (std::holds_alternative< ItemMapFilterContainers>(flags))
+		else if (std::holds_alternative<ItemMapFilterContainers>(flags))
 		{
 			return this->colorsContainers[static_cast<size_t>(std::get<ItemMapFilterContainers>(flags))];
 		}

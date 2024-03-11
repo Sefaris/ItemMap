@@ -2,6 +2,17 @@
 // Union SOURCE file
 
 namespace GOTHIC_ENGINE {
+	bool IsValidItemInstance(const zSTRING& itemInstance)
+	{
+		int indexItem = parser->GetIndex(itemInstance);
+		if (indexItem == Invalid)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 	bool oCMobContainer::IsEmpty_Union()
 	{
 		auto contInv = this->containList.next;
@@ -95,10 +106,22 @@ namespace GOTHIC_ENGINE {
 
 		if (auto container = zDYNAMIC_CAST<oCMobContainer>(this))
 		{
-			if (!container->IsEmpty_Union())
+			if (container->locked && container->pickLockStr.IsEmpty() && container->keyInstance.IsEmpty())
 			{
-				return true;
+				return false;
 			}
+
+			if (container->locked && container->pickLockStr.IsEmpty() && !container->keyInstance.IsEmpty() && !IsValidItemInstance(container->keyInstance))
+			{
+				return false;
+			}
+
+			if (container->IsEmpty_Union())
+			{
+				return false;
+			}
+
+			return true;
 		}
 		else if (auto inter = zDYNAMIC_CAST<oCMobInter>(this))
 		{
