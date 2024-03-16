@@ -639,6 +639,11 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::Print()
 	{
+		if (ogame->singleStep || ogame->pause_screen)
+		{
+			return;
+		}
+
 		if (!this->OnScreen)
 		{
 			return;
@@ -702,9 +707,10 @@ namespace GOTHIC_ENGINE {
 		funcName.Lower();
 		if (!inter->name.IsEmpty())
 		{
-			if (auto symbol = parser->GetSymbol(inter->name))
+			auto symbol = parser->GetSymbol(inter->name);
+			if (symbol && symbol->type == zPAR_TYPE_STRING)
 			{
-				if (!symbol->stringdata->IsEmpty())
+				if (symbol->stringdata && !symbol->stringdata->IsEmpty())
 				{
 					name = symbol->stringdata;
 				}
@@ -1168,7 +1174,7 @@ namespace GOTHIC_ENGINE {
 		{
 			return false;
 		}
-
+		
 		auto mapView = docMap->ViewPageMap;
 		auto mapPos = mapView->PixelPosition;
 		auto mapSize = mapView->PixelSize;
@@ -1218,12 +1224,23 @@ namespace GOTHIC_ENGINE {
 
 			while (docList)
 			{
-				if (this->TryInitMap(docList->GetData()))
+				auto doc = docList->GetData();
+				docList = docList->next;
+
+				if (!doc)
+				{
+					continue;
+				}
+
+				if (!doc->HasOpened)
+				{
+					continue;
+				}
+
+				if (this->TryInitMap(doc))
 				{
 					return;
 				}
-
-				docList = docList->next;
 			}
 		}
 	}

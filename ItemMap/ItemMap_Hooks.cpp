@@ -6,7 +6,10 @@ namespace GOTHIC_ENGINE {
 	void __fastcall oCDocumentManager::Show_Union(int id)
 	{
 		THISCALL(Ivk_oCDocumentManager_Show)(id);
-
-		itemMap->TryInitMap(this->GetDocumentView(id));
+		
+		if (auto docView = this->GetDocumentView(id))
+		{
+			itemMap->TryInitMap(docView);
+		}
 	}
 }
