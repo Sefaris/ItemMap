@@ -3,7 +3,7 @@
 
 ## Functionality
 - Show markers on map for items with ability to filter by plants, melee weapons, ranged weapons, armors, documents, spells (runes/scrolls), magic items, potions, food and miscellaneous
-- Show markers on map for npcs with ability to filter by dead, angry, friendly, companions, hostile humans/monsters, traders and npcs that can be pickpocketed (only G2)
+- Show markers on map for npcs with ability to filter by dead, angry, friendly, companions, hostile humans/monsters, traders, npcs that can still give exp after beating them up (humans) and npcs that can be pickpocketed (only G2)
 - Show markers on map for containers with ability to filter by locked (picklock/key owned by player/key not owned by player), open
 - Show markers on map for items that are in containers
 - Show markers on map for interactive objects that have a function
@@ -150,6 +150,10 @@ ColorNpcPickpocket=#80AFFF
 ; 
 ; Marker color for npcs that can be pickpocketed [default: #80AFFF]
 
+ColorNpcDefeatExp=#123456
+; 
+; Marker color for npcs that can give exp after beating them up [default: #123456]
+
 ColorNpcNeutral=#696969
 ; 
 ; Marker color for all npcs that do not belong to any of the previous categories [default: #696969]
@@ -182,4 +186,8 @@ ColorStaticFilter=#FFFFFF
 ; 
 ; Marker color used when "ShowFilteredStaticColor" is active [default: #FFFFFF]
 ; Plugin will use this color for all markers whenever there is a filter active which is not ALL
+
+NewBalanceWispRule=0
+; 
+; If enabled, plugin doesn't show items that are hidden in New Balance mod. By default enabled if New Balance mod is detected.
 ```
