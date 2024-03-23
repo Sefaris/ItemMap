@@ -130,6 +130,14 @@ namespace GOTHIC_ENGINE {
 
 		this->ShowFilteredStaticColor = zoptions->ReadBool(PluginName.data(), "ShowFilteredStaticColor", False);
 		this->colorStaticFilter = this->HexToColor(zoptions->ReadString(PluginName.data(), "ColorStaticFilter", "#FFFFFF").ToChar());
+
+		int NewBalanceWispRuleDefault = parser->GetIndex("rx_updateversionvalue") == Invalid ? False : True;
+		this->NewBalanceWispRule = zoptions->ReadBool(PluginName.data(), "NewBalanceWispRule", NewBalanceWispRuleDefault);
+		if (this->NewBalanceWispRule)
+		{
+			auto sym = parser->GetSymbol("bit_item_nowisp");
+			this->NewBalanceWispRuleBitflag = sym ? sym->single_intdata : Invalid;
+		}
 	}
 
 	zCOLOR ItemMap::HexToColor(std::string_view hexstring)
@@ -1474,49 +1482,6 @@ namespace GOTHIC_ENGINE {
 			return false;
 		}
 
-		//For Gothic 2: New Balance
-		if (this->indexCanStealNpcAST != Invalid)
-		{
-			//NPC_GIL_HUMANS == GIL_TPL in New Balance
-			if (npc->guild > NPC_GIL_HUMANS)
-			{
-				return false;
-			}
-
-			static auto argumentSymbol = []() -> zCPar_Symbol*
-				{
-					if (parser->GetSymbol(itemMap->indexCanStealNpcAST)->ele != 1)
-					{
-						return nullptr;
-					}
-
-					auto symbol = parser->GetSymbol(itemMap->indexCanStealNpcAST + 1);
-					if (!symbol || symbol->type != zPAR_TYPE_INSTANCE)
-					{
-						return nullptr;
-					}
-
-					return symbol;
-				}();
-
-				if (argumentSymbol)
-				{
-					const auto pos = parser->GetSymbol(this->indexCanStealNpcAST)->single_intdata;
-					parser->datastack.Clear();
-
-					argumentSymbol->offset = reinterpret_cast<int>(npc);
-					parser->datastack.Push(this->indexCanStealNpcAST + 1);
-					parser->DoStack(pos);
-
-					auto ret = parser->PopDataValue();
-
-					if (ret)
-					{
-						return true;
-					}
-				}
-		}
-
 		for (auto info : pickpocketInfos) {
 
 			if (info->GetNpcID() != npc->GetInstance())
@@ -1530,6 +1495,49 @@ namespace GOTHIC_ENGINE {
 			if (info->InfoConditions())
 			{
 				return true;
+			}
+		}
+
+		//For Gothic 2: New Balance
+		if (this->indexCanStealNpcAST != Invalid)
+		{
+			//NPC_GIL_HUMANS == GIL_TPL in New Balance
+			if (npc->guild > NPC_GIL_HUMANS)
+			{
+				return false;
+			}
+
+			static auto argumentSymbol = []() -> zCPar_Symbol*
+			{
+				if (parser->GetSymbol(itemMap->indexCanStealNpcAST)->ele != 1)
+				{
+					return nullptr;
+				}
+
+				auto symbol = parser->GetSymbol(itemMap->indexCanStealNpcAST + 1);
+				if (!symbol || symbol->type != zPAR_TYPE_INSTANCE)
+				{
+					return nullptr;
+				}
+
+				return symbol;
+			}();
+
+			if (argumentSymbol)
+			{
+				const auto pos = parser->GetSymbol(this->indexCanStealNpcAST)->single_intdata;
+				parser->datastack.Clear();
+
+				argumentSymbol->offset = reinterpret_cast<int>(npc);
+				parser->datastack.Push(this->indexCanStealNpcAST + 1);
+				parser->DoStack(pos);
+
+				auto ret = parser->PopDataValue();
+
+				if (ret)
+				{
+					return true;
+				}
 			}
 		}
 

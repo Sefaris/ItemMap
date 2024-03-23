@@ -62,6 +62,11 @@ namespace GOTHIC_ENGINE {
 			return false;
 		}
 
+		if (itemMap->NewBalanceWispRule && itemMap->NewBalanceWispRuleBitflag != Invalid && (item->hitp & itemMap->NewBalanceWispRuleBitflag) != 0)
+		{
+			return false;
+		}
+
 		return true;
 	}
 

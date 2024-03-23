@@ -4,7 +4,7 @@
 namespace GOTHIC_ENGINE
 {
 	static constexpr std::string_view PluginName = "ItemMap";
-	static constexpr std::string_view PluginVersion = "1.0.3";
+	static constexpr std::string_view PluginVersion = "1.0.4";
 
 	static constexpr float sin90 = 1.0f; // 90 degree sinus
 	static constexpr float cos90 = 0.0f; // 90 degree cosinus
@@ -257,6 +257,9 @@ namespace GOTHIC_ENGINE
 		ItemMapFilterContainers filterContainers;
 		zVEC4 mapCoords;
 		zVEC4 worldCoords;
+
+		bool NewBalanceWispRule;
+		int NewBalanceWispRuleBitflag;
 
 #if ENGINE >= Engine_G2
 		void GetPickPockets();
