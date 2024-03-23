@@ -269,6 +269,16 @@ namespace GOTHIC_ENGINE {
 			}
 #endif
 
+#if ENGINE >= Engine_G2
+			zSTRING AIV_EXP = "AIV_VictoryXPGiven";
+#else
+			zSTRING AIV_EXP = "AIV_WASDEFEATEDBYSC";
+#endif
+			if (!npc->HasFlag(NPC_FLAG_IMMORTAL) && !npc->GetAivar_Union(AIV_EXP) && npc->guild <= NPC_GIL_HUMANS)
+			{
+					this->SetNpcFlag(flags, ItemMapFilterNpcs::DEFEATEXP);
+			}
+
 			if (this->CanTrade(npc))
 			{
 				this->SetNpcFlag(flags, ItemMapFilterNpcs::TRADER);

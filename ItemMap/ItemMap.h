@@ -97,6 +97,7 @@ namespace GOTHIC_ENGINE
 #if ENGINE >= Engine_G2
 		PICKPOCKET,
 #endif
+		DEFEATEXP,
 		NEUTRAL,
 		ALL
 	};
@@ -112,7 +113,8 @@ namespace GOTHIC_ENGINE
 		"Trader",
 #if ENGINE >= Engine_G2
 		"Pickpocket",
-#endif
+#endif,
+		"DefeatExp",
 		"Neutral",
 		"All"
 	};
@@ -127,7 +129,8 @@ namespace GOTHIC_ENGINE
 		"#FFFF80",
 #if ENGINE >= Engine_G2
 		"#80AFFF",
-#endif
+#endif,
+		"#123456",
 		"#696969"
 	};
 
