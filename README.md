@@ -76,7 +76,7 @@ PrevFilterItems=0
 
 PrevFilterNpcs=8
 ; 
-; Previously used filter for npcs [default: 8(G1)/9(G2) - All]
+; Previously used filter for npcs [default: 9(G1)/10(G2) - All]
 
 ColorItemPlants=#00FF00
 ; 
