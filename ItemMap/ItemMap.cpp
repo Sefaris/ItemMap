@@ -133,11 +133,8 @@ namespace GOTHIC_ENGINE {
 
 		int NewBalanceWispRuleDefault = parser->GetIndex("rx_updateversionvalue") == Invalid ? False : True;
 		this->NewBalanceWispRule = zoptions->ReadBool(PluginName.data(), "NewBalanceWispRule", NewBalanceWispRuleDefault);
-		if (this->NewBalanceWispRule)
-		{
-			auto sym = parser->GetSymbol("bit_item_nowisp");
-			this->NewBalanceWispRuleBitflag = sym ? sym->single_intdata : Invalid;
-		}
+		auto sym = parser->GetSymbol("bit_item_nowisp");
+		this->NewBalanceWispRuleBitflag = sym ? sym->single_intdata : Invalid;
 	}
 
 	zCOLOR ItemMap::HexToColor(std::string_view hexstring)
