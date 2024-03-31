@@ -286,4 +286,19 @@ namespace GOTHIC_ENGINE {
 
 		return true;
 	}
+
+	bool HasOneOf(const zSTRING& str, const string& cmp)
+	{
+			auto cmplist = cmp.Split("|");
+			for (auto& cmpit : cmplist)
+			{
+					cmpit.Shrink();
+					if (str.HasWordI(cmpit))
+					{
+							return true;
+					}
+			}
+
+			return false;
+	}
 }

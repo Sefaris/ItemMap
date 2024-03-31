@@ -882,7 +882,7 @@ namespace GOTHIC_ENGINE {
 
 		for (auto printItem : this->GetCurrentVectorAll())
 		{
-			if (!search.IsEmpty() && !printItem->name.HasWordI(search) && !printItem->instancename.HasWordI(search))
+			if (!search.IsEmpty() && !HasOneOf(printItem->name, search) && !HasOneOf(printItem->instancename, search))
 			{
 				continue;
 			}
@@ -906,7 +906,7 @@ namespace GOTHIC_ENGINE {
 		this->CurrentUniquesTotalCount = 0;
 		for (auto printItemUnique : this->GetCurrentVectorUniques())
 		{
-			if (!search.IsEmpty() && !printItemUnique->name.HasWordI(search) && !printItemUnique->instancename.HasWordI(search))
+			if (!search.IsEmpty() && !HasOneOf(printItemUnique->name, search) && !HasOneOf(printItemUnique->instancename, search))
 			{
 				continue;
 			}
@@ -1463,12 +1463,12 @@ namespace GOTHIC_ENGINE {
 			auto info = list->data;
 			list = list->next;
 
-			if (!info->name.HasWordI("pickpocket") && !info->name.HasWordI("_steal") && !info->name.HasWordI("pickme"))
+			if (!HasOneOf(info->name, string{ "pickpocket | _steal | pickme" }))
 			{
 				continue;
 			}
 
-			if (info->name.HasWordI("_DOIT") || info->name.HasWordI("_TRY"))
+			if (HasOneOf(info->name, string{ "_DOIT | _TRY" }))
 			{
 				continue;
 			}

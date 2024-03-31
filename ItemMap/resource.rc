@@ -59,8 +59,8 @@ IDR_PATCH1              PATCH                   "Plugin.patch"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,1382
- PRODUCTVERSION 1,0,0,1382
+ FILEVERSION 1,0,0,1394
+ PRODUCTVERSION 1,0,0,1394
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -77,12 +77,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Sefaris"
             VALUE "FileDescription", "In-game map with items and npcs"
-            VALUE "FileVersion", "1.0.0.1382"
+            VALUE "FileVersion", "1.0.0.1394"
             VALUE "InternalName", "ItemMap"
             VALUE "LegalCopyright", "Copyright (C) 2023"
             VALUE "OriginalFilename", "ItemMap"
             VALUE "ProductName", "ItemMap"
-            VALUE "ProductVersion", "1.0.0.1382"
+            VALUE "ProductVersion", "1.0.0.1394"
         END
     END
     BLOCK "VarFileInfo"

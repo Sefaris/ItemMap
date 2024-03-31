@@ -4,7 +4,7 @@
 namespace GOTHIC_ENGINE
 {
 	static constexpr std::string_view PluginName = "ItemMap";
-	static constexpr std::string_view PluginVersion = "1.0.4";
+	static constexpr std::string_view PluginVersion = "1.0.5";
 
 	static constexpr float sin90 = 1.0f; // 90 degree sinus
 	static constexpr float cos90 = 0.0f; // 90 degree cosinus
