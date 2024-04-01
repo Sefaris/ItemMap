@@ -962,10 +962,7 @@ namespace GOTHIC_ENGINE {
 			return;
 		}
 
-		if (!zinput->AnyKeyPressed())
-		{
-			return;
-		}
+		bool refresh = false;
 
 		bool shift = (GetKeyState(VK_SHIFT) & 0x8000);
 		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000);
@@ -1089,6 +1086,7 @@ namespace GOTHIC_ENGINE {
 				this->search = L"";
 			}
 			this->mode = ItemMapMode::ITEMS;
+			refresh = true;
 		}
 
 		if (zKeyToggled(KEY_F6) && this->mode != ItemMapMode::NPCS)
@@ -1099,6 +1097,7 @@ namespace GOTHIC_ENGINE {
 				this->search = L"";
 			}
 			this->mode = ItemMapMode::NPCS;
+			refresh = true;
 		}
 
 		if (zKeyToggled(KEY_F7) && this->mode != ItemMapMode::CONTAINERS)
@@ -1109,6 +1108,7 @@ namespace GOTHIC_ENGINE {
 				this->search = L"";
 			}
 			this->mode = ItemMapMode::CONTAINERS;
+			refresh = true;
 		}
 
 		if (zKeyToggled(KEY_F8) && this->mode != ItemMapMode::INTERACTIVES)
@@ -1119,6 +1119,7 @@ namespace GOTHIC_ENGINE {
 				this->search = L"";
 			}
 			this->mode = ItemMapMode::INTERACTIVES;
+			refresh = true;
 		}
 
 		if (zKeyToggled(KEY_BACKSPACE) && this->SearchBarActive && this->ShowSearchBar)
@@ -1131,6 +1132,7 @@ namespace GOTHIC_ENGINE {
 			{
 				this->search = this->search.Copy(0, this->search.Length() - 1);
 			}
+			refresh = true;
 		}
 
 		if (this->SearchBarActive && this->ShowSearchBar && zinput->AnyKeyPressed())
@@ -1157,6 +1159,7 @@ namespace GOTHIC_ENGINE {
 						if (numChars == 1 && iswprint(buff[0]))
 						{
 							this->search = this->search + buff;
+							refresh = true;
 						}
 					}
 				}
@@ -1164,7 +1167,11 @@ namespace GOTHIC_ENGINE {
 		}
 
 		zinput->ClearKeyBuffer();
-		this->RefreshLists();
+
+		if (refresh)
+		{
+				this->RefreshLists();
+		}
 
 		return;
 	}
