@@ -39,6 +39,7 @@ namespace GOTHIC_ENGINE {
 		this->TransparentPanels = false;
 
 		this->search = L"";
+		this->searchStringSeparator = "|";
 
 		this->indexSpriteMapHandle = parser->GetIndex("SPRITEMAP_SPRITEHNDL");
 		this->indexSpriteCursorHandle = parser->GetIndex("SPRITEMAP_SPRITECURSORHNDL");
@@ -133,6 +134,8 @@ namespace GOTHIC_ENGINE {
 		this->NewBalanceWispRule = zoptions->ReadBool(PluginName.data(), "NewBalanceWispRule", NewBalanceWispRuleDefault);
 		auto sym = parser->GetSymbol("bit_item_nowisp");
 		this->NewBalanceWispRuleBitflag = sym ? sym->single_intdata : Invalid;
+
+		this->searchStringSeparator = string{ zoptions->ReadString(PluginName.data(), "SearchStringSeparator", this->searchStringSeparator) };
 	}
 
 	zCOLOR ItemMap::HexToColor(std::string_view hexstring)
@@ -161,17 +164,17 @@ namespace GOTHIC_ENGINE {
 		}
 	}
 
-	zCOLOR ItemMap::GetColor(std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags)
+	zCOLOR ItemMap::GetColor(std::variant<ItemMapFilterItems, ItemMapFilterNpcsFlags, ItemMapFilterContainers> flags)
 	{
 		if (std::holds_alternative<ItemMapFilterItems>(flags))
 		{
 			return this->colorsItems[static_cast<size_t>(std::get<ItemMapFilterItems>(flags))];
 		}
-		else if (std::holds_alternative<int>(flags))
+		else if (std::holds_alternative<ItemMapFilterNpcsFlags>(flags))
 		{
 			for (size_t i = 0; i < static_cast<size_t>(ItemMapFilterNpcs::ALL); i++)
 			{
-				if (this->HasNpcFlag(std::get<int>(flags), static_cast<ItemMapFilterNpcs>(i)))
+				if (this->HasNpcFlag(std::get<ItemMapFilterNpcsFlags>(flags), static_cast<ItemMapFilterNpcs>(i)))
 				{
 					return this->colorsNpcs[i];
 				}
@@ -215,15 +218,14 @@ namespace GOTHIC_ENGINE {
 		return ItemMapFilterItems::NONE;
 	}
 
-	void ItemMap::SetNpcFlag(int& npcFlags, ItemMapFilterNpcs filterFlag)
+	void ItemMap::SetNpcFlag(ItemMapFilterNpcsFlags& npcFlags, ItemMapFilterNpcs filterFlag)
 	{
-		npcFlags |= (1 << static_cast<int>(filterFlag));
+		npcFlags.set(filterFlag);
 	}
 
-	bool ItemMap::HasNpcFlag(int npcFlags, ItemMapFilterNpcs filterFlag)
+	bool ItemMap::HasNpcFlag(ItemMapFilterNpcsFlags& npcFlags, ItemMapFilterNpcs filterFlag)
 	{
-		int flag = 1 << static_cast<int>(filterFlag);
-		return (npcFlags & flag) == flag;
+		return npcFlags[filterFlag];
 	}
 
 	ItemMapFilterContainers ItemMap::GetFilterFlagContainers(oCMobContainer* container)
@@ -250,9 +252,9 @@ namespace GOTHIC_ENGINE {
 		return ItemMapFilterContainers::OPEN;
 	}
 
-	int ItemMap::GetFilterFlagNpcs(oCNpc* npc)
+	ItemMapFilterNpcsFlags ItemMap::GetFilterFlagNpcs(oCNpc* npc)
 	{
-		int flags = 0;
+		ItemMapFilterNpcsFlags flags;
 
 		if (npc->attribute[NPC_ATR_HITPOINTS] <= 0 && npc->CanBeLooted_Union())
 		{
@@ -692,7 +694,7 @@ namespace GOTHIC_ENGINE {
 	{
 		auto flags = this->GetFilterFlagNpcs(npc);
 
-		if (flags == 0)
+		if (flags.none())
 		{
 			return;
 		}
@@ -702,7 +704,7 @@ namespace GOTHIC_ENGINE {
 
 		for (auto it : this->vecNpcsUniqueAll)
 		{
-			if (it->instanz == npc->instanz && std::get<int>(it->flags) == flags) {
+			if (it->instanz == npc->instanz && std::get<ItemMapFilterNpcsFlags>(it->flags).compare(flags)) {
 				it->count = it->count + 1;
 				return;
 			}
@@ -887,7 +889,7 @@ namespace GOTHIC_ENGINE {
 			{
 				continue;
 			}
-			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<int>(printItem->flags), this->filterNpcs))
+			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<ItemMapFilterNpcsFlags>(printItem->flags), this->filterNpcs))
 			{
 				continue;
 			}
@@ -911,7 +913,7 @@ namespace GOTHIC_ENGINE {
 			{
 				continue;
 			}
-			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<int>(printItemUnique->flags), this->filterNpcs))
+			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<ItemMapFilterNpcsFlags>(printItemUnique->flags), this->filterNpcs))
 			{
 				continue;
 			}

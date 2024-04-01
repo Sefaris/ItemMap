@@ -14,27 +14,27 @@ namespace GOTHIC_ENGINE
 	static constexpr std::string_view textureMarkerUp = "ITEMMAP_MARKER_UP.TGA";
 	static constexpr std::string_view textureMarkerDown = "ITEMMAP_MARKER_DOWN.TGA";
 
-	enum class HookType : int
+	enum class HookType : size_t
 	{
 		Normal,
 		CoM,
 		NoHook
 	};
 
-	enum class FilterOperation
+	enum class FilterOperation : size_t
 	{
 		INCREMENT,
 		DECREMENT
 	};
 
-	enum class ItemMapGroundLevel : int
+	enum class ItemMapGroundLevel : size_t
 	{
 		SAME,
 		HIGHER,
 		LOWER
 	};
 
-	enum class ItemMapMode : int
+	enum class ItemMapMode : size_t
 	{
 		ITEMS,
 		NPCS,
@@ -42,7 +42,7 @@ namespace GOTHIC_ENGINE
 		INTERACTIVES
 	};
 
-	enum class ItemMapFilterItems : int
+	enum class ItemMapFilterItems : size_t
 	{
 		PLANT,
 		MELEE,
@@ -85,7 +85,77 @@ namespace GOTHIC_ENGINE
 		"#808080"
 	};
 
-	enum class ItemMapFilterNpcs : int
+	template <typename EnumT>
+	class Flags
+	{
+		static_assert(std::is_enum_v<EnumT>, "Flags can only be specialized for enum types");
+		using UnderlyingT = typename std::underlying_type_t<EnumT>;
+
+	public:
+		[[nodiscard]] bool compare(Flags& cmp) const noexcept
+		{
+			return bits_ == cmp.bits_;
+		}
+
+		Flags& set(EnumT e, bool value = true) noexcept
+		{
+			bits_.set(underlying(e), value);
+			return *this;
+		}
+
+		Flags& reset(EnumT e) noexcept
+		{
+			set(e, false);
+			return *this;
+		}
+		
+		Flags& reset() noexcept
+		{
+			bits_.reset();
+			return *this;
+		}
+
+		[[nodiscard]] bool all() const noexcept
+		{
+			return bits_.all();
+		}
+
+		[[nodiscard]] bool any() const noexcept
+		{
+			return bits_.any();
+		}
+
+		[[nodiscard]] bool none() const noexcept
+		{
+			return bits_.none();
+		}
+
+		[[nodiscard]] constexpr std::size_t size() const noexcept
+		{
+			return bits_.size();
+		}
+
+		[[nodiscard]] std::size_t count() const noexcept
+		{
+			return bits_.count();
+		}
+
+		constexpr bool operator[](EnumT e) const
+		{
+			return bits_[underlying(e)];
+		}
+
+	private:
+		static constexpr UnderlyingT underlying(EnumT e)
+		{
+			return static_cast<UnderlyingT>(e);
+		}
+
+	private:
+		std::bitset<underlying(EnumT::ALL)> bits_;
+	};
+
+	enum class ItemMapFilterNpcs : size_t
 	{
 		DEAD,
 		ANGRY,
@@ -99,6 +169,7 @@ namespace GOTHIC_ENGINE
 		NEUTRAL,
 		ALL
 	};
+	using ItemMapFilterNpcsFlags = Flags<ItemMapFilterNpcs>;
 	static constexpr auto ColorsNpcsMax = static_cast<size_t>(ItemMapFilterNpcs::ALL);
 
 	static constexpr std::string_view FilterNpcsNames[ColorsNpcsMax + 1] = {
@@ -128,7 +199,7 @@ namespace GOTHIC_ENGINE
 		"#696969"
 	};
 
-	enum class ItemMapFilterContainers : int
+	enum class ItemMapFilterContainers : size_t
 	{
 		ITEMS,
 		LOCKPICK,
@@ -192,10 +263,10 @@ namespace GOTHIC_ENGINE
 		zCOLOR color;
 		zSTRING name;
 		zSTRING instancename;
-		std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags;
+		std::variant<ItemMapFilterItems, ItemMapFilterNpcsFlags, ItemMapFilterContainers, int> flags;
 		ItemMapGroundLevel groundlevel;
 
-		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags, ItemMapGroundLevel groundlevel)
+		PrintItem(zPOS pos, zCOLOR color, const zSTRING& name, const zSTRING& instancename, std::variant<ItemMapFilterItems, ItemMapFilterNpcsFlags, ItemMapFilterContainers, int> flags, ItemMapGroundLevel groundlevel)
 			: pos(pos), color(color), name(name), instancename(instancename), flags(flags), groundlevel(groundlevel)
 		{}
 	};
@@ -207,9 +278,9 @@ namespace GOTHIC_ENGINE
 		zSTRING instancename;
 		int count;
 		int totalamount;
-		std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags;
+		std::variant<ItemMapFilterItems, ItemMapFilterNpcsFlags, ItemMapFilterContainers, int> flags;
 
-		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int count, int totalamount, std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags)
+		PrintItemUnique(int instanz, const zSTRING& name, const zSTRING& instancename, int count, int totalamount, std::variant<ItemMapFilterItems, ItemMapFilterNpcsFlags, ItemMapFilterContainers, int> flags)
 			: instanz(instanz), name(name), instancename(instancename), count(count), totalamount(totalamount), flags(flags)
 		{}
 	};
@@ -235,9 +306,9 @@ namespace GOTHIC_ENGINE
 		void Close();
 		bool TryInitMap(oCViewDocument* document);
 		void InitMap(HookType hook, int rotate = 0);
-		zCOLOR GetColor(std::variant<ItemMapFilterItems, int, ItemMapFilterContainers> flags);
+		zCOLOR GetColor(std::variant<ItemMapFilterItems, ItemMapFilterNpcsFlags, ItemMapFilterContainers> flags);
 		ItemMapFilterItems GetFilterFlagItems(oCItem* item);
-		int GetFilterFlagNpcs(oCNpc* npc);
+		ItemMapFilterNpcsFlags GetFilterFlagNpcs(oCNpc* npc);
 		ItemMapFilterContainers GetFilterFlagContainers(oCMobContainer* container);
 		HookType Hook;
 		bool OnScreen;
@@ -315,8 +386,8 @@ namespace GOTHIC_ENGINE
 
 		int NPC_TYPE_FRIEND;
 
-		void SetNpcFlag(int& npcFlags, ItemMapFilterNpcs filterFlag);
-		bool HasNpcFlag(int npcFlags, ItemMapFilterNpcs filterFlag);
+		void SetNpcFlag(ItemMapFilterNpcsFlags& npcFlags, ItemMapFilterNpcs filterFlag);
+		bool HasNpcFlag(ItemMapFilterNpcsFlags& npcFlags, ItemMapFilterNpcs filterFlag);
 
 		std::vector<oCInfo*> pickpocketInfos;
 		int indexCanStealNpcAST;

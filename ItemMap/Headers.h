@@ -2,6 +2,7 @@
 // Add your headers this
 
 // Automatically generated block
+#include <bitset>
 #include <random>
 #include <vector>
 #include <map>
