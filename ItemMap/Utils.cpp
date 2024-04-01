@@ -289,7 +289,7 @@ namespace GOTHIC_ENGINE {
 
 	bool HasOneOf(const zSTRING& str, const string& cmp)
 	{
-			auto cmplist = cmp.Split("|");
+			auto cmplist = cmp.Split(itemMap->searchStringSeparator);
 			for (auto& cmpit : cmplist)
 			{
 					cmpit.Shrink();

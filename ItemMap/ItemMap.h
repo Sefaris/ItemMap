@@ -94,9 +94,7 @@ namespace GOTHIC_ENGINE
 		HOSTILEHUMAN,
 		HOSTILEMONSTER,
 		TRADER,
-#if ENGINE >= Engine_G2
 		PICKPOCKET,
-#endif
 		DEFEATEXP,
 		NEUTRAL,
 		ALL
@@ -111,9 +109,7 @@ namespace GOTHIC_ENGINE
 		"HostileHuman",
 		"HostileMonster",
 		"Trader",
-#if ENGINE >= Engine_G2
 		"Pickpocket",
-#endif,
 		"DefeatExp",
 		"Neutral",
 		"All"
@@ -127,9 +123,7 @@ namespace GOTHIC_ENGINE
 		"#C800C8",
 		"#FF0000",
 		"#FFFF80",
-#if ENGINE >= Engine_G2
 		"#80AFFF",
-#endif,
 		"#123456",
 		"#696969"
 	};
@@ -254,6 +248,7 @@ namespace GOTHIC_ENGINE
 		size_t listPage;
 		size_t listPageMax;
 		wstring search;
+		string searchStringSeparator;
 		ItemMapMode mode;
 		ItemMapFilterItems filterItems;
 		ItemMapFilterNpcs filterNpcs;
@@ -264,9 +259,7 @@ namespace GOTHIC_ENGINE
 		bool NewBalanceWispRule;
 		int NewBalanceWispRuleBitflag;
 
-#if ENGINE >= Engine_G2
 		void GetPickPockets();
-#endif
 		void GetTraders();
 
 		void InitMapHack();
@@ -324,11 +317,10 @@ namespace GOTHIC_ENGINE
 
 		void SetNpcFlag(int& npcFlags, ItemMapFilterNpcs filterFlag);
 		bool HasNpcFlag(int npcFlags, ItemMapFilterNpcs filterFlag);
-#if ENGINE >= Engine_G2
+
 		std::vector<oCInfo*> pickpocketInfos;
 		int indexCanStealNpcAST;
 		bool CanBePickPocketed(oCNpc* npc);
-#endif
 		std::vector<oCInfo*> traderInfos;
 		bool CanTrade(oCNpc* npc);
 		bool ShowTradersNoCond;

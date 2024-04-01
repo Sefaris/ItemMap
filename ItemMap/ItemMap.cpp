@@ -43,9 +43,7 @@ namespace GOTHIC_ENGINE {
 		this->indexSpriteMapHandle = parser->GetIndex("SPRITEMAP_SPRITEHNDL");
 		this->indexSpriteCursorHandle = parser->GetIndex("SPRITEMAP_SPRITECURSORHNDL");
 
-#if ENGINE >= Engine_G2
 		this->indexCanStealNpcAST = parser->GetIndex("RX_CanStealNpcAST");
-#endif
 
 		this->UpdateSettings();
 
@@ -262,12 +260,10 @@ namespace GOTHIC_ENGINE {
 		}
 		else if (npc->attribute[NPC_ATR_HITPOINTS] > 0)
 		{
-#if ENGINE >= Engine_G2
 			if (this->CanBePickPocketed(npc))
 			{
 				this->SetNpcFlag(flags, ItemMapFilterNpcs::PICKPOCKET);
 			}
-#endif
 
 #if ENGINE >= Engine_G2
 			zSTRING AIV_EXP = "AIV_VictoryXPGiven";
@@ -964,6 +960,11 @@ namespace GOTHIC_ENGINE {
 			return;
 		}
 
+		if (!zinput->AnyKeyPressed())
+		{
+			return;
+		}
+
 		bool shift = (GetKeyState(VK_SHIFT) & 0x8000);
 		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000);
 
@@ -1453,7 +1454,6 @@ namespace GOTHIC_ENGINE {
 		this->RefreshLists();
 	}
 
-#if ENGINE >= Engine_G2
 	void ItemMap::GetPickPockets()
 	{
 		this->pickpocketInfos.clear();
@@ -1506,7 +1506,7 @@ namespace GOTHIC_ENGINE {
 		}
 
 		//For Gothic 2: New Balance
-		if (this->indexCanStealNpcAST != Invalid)
+		if (this->indexCanStealNpcAST > 0)
 		{
 			//NPC_GIL_HUMANS == GIL_TPL in New Balance
 			if (npc->guild > NPC_GIL_HUMANS)
@@ -1550,7 +1550,6 @@ namespace GOTHIC_ENGINE {
 
 		return false;
 	}
-#endif
 
 	void ItemMap::GetTraders()
 	{

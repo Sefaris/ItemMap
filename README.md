@@ -3,7 +3,7 @@
 
 ## Functionality
 - Show markers on map for items with ability to filter by plants, melee weapons, ranged weapons, armors, documents, spells (runes/scrolls), magic items, potions, food and miscellaneous
-- Show markers on map for npcs with ability to filter by dead, angry, friendly, companions, hostile humans/monsters, traders, npcs that can still give exp after beating them up (humans) and npcs that can be pickpocketed (only G2)
+- Show markers on map for npcs with ability to filter by dead, angry, friendly, companions, hostile humans/monsters, traders, npcs that can still give exp after beating them up (humans) and npcs that can be pickpocketed
 - Show markers on map for containers with ability to filter by locked (picklock/key owned by player/key not owned by player), open
 - Show markers on map for items that are in containers
 - Show markers on map for interactive objects that have a function
@@ -76,7 +76,7 @@ PrevFilterItems=0
 
 PrevFilterNpcs=8
 ; 
-; Previously used filter for npcs [default: 9(G1)/10(G2) - All]
+; Previously used filter for npcs [default: 10 - All]
 
 ColorItemPlants=#00FF00
 ; 
