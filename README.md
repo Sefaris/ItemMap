@@ -17,12 +17,14 @@
 ![All items](https://i.imgur.com/4BRyLyd.jpeg)
 #### All npcs
 ![All npcs](https://i.imgur.com/nWuCfwL.jpeg)
-#### Search npc by name
-![Search npc by name](https://i.imgur.com/oUyfJ2D.jpeg)
-#### Search item by name
-![Search item by name](https://i.imgur.com/1ArKF5y.jpeg)
-#### Search item by instance
-![Search item by instance](https://i.imgur.com/2ITj4Bl.jpeg)
+#### Search for an npc by name
+![Search for npc by name](https://i.imgur.com/oUyfJ2D.jpeg)
+#### Search for an item by name
+![Search for item by name](https://i.imgur.com/1ArKF5y.jpeg)
+#### Search for an item by instance
+![Search for item by instance](https://i.imgur.com/2ITj4Bl.jpeg)
+#### Search for multiple items
+![Search for multiple items](https://i.imgur.com/dsTX11w.jpeg)
 
 ## Default ini settings
 All settings besides colors, `ShowTradersNoCond`, `RememberSearchInput` and `ShowFilteredStaticColor` can be changed in-game while interacting with map and are saved after closing the map.
@@ -190,4 +192,8 @@ ColorStaticFilter=#FFFFFF
 NewBalanceWispRule=0
 ; 
 ; If enabled, plugin doesn't show items that are hidden in New Balance mod. By default enabled if New Balance mod is detected.
+
+SearchStringSeparator=|
+; 
+; Separator used to split search string when searching for multiple objects. [default: |]
 ```
