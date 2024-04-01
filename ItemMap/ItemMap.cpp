@@ -225,7 +225,7 @@ namespace GOTHIC_ENGINE {
 
 	bool ItemMap::HasNpcFlag(ItemMapFilterNpcsFlags& npcFlags, ItemMapFilterNpcs filterFlag)
 	{
-		return npcFlags[filterFlag];
+		return npcFlags.isset(filterFlag);
 	}
 
 	ItemMapFilterContainers ItemMap::GetFilterFlagContainers(oCMobContainer* container)

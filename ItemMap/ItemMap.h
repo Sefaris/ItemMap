@@ -89,70 +89,31 @@ namespace GOTHIC_ENGINE
 	class Flags
 	{
 		static_assert(std::is_enum_v<EnumT>, "Flags can only be specialized for enum types");
-		using UnderlyingT = typename std::underlying_type_t<EnumT>;
 
 	public:
-		[[nodiscard]] bool compare(Flags& cmp) const noexcept
-		{
-			return bits_ == cmp.bits_;
-		}
-
 		Flags& set(EnumT e, bool value = true) noexcept
 		{
-			bits_.set(underlying(e), value);
+			this->bits_.set(std::to_underlying(e), value);
 			return *this;
-		}
-
-		Flags& reset(EnumT e) noexcept
-		{
-			set(e, false);
-			return *this;
-		}
-		
-		Flags& reset() noexcept
-		{
-			bits_.reset();
-			return *this;
-		}
-
-		[[nodiscard]] bool all() const noexcept
-		{
-			return bits_.all();
-		}
-
-		[[nodiscard]] bool any() const noexcept
-		{
-			return bits_.any();
 		}
 
 		[[nodiscard]] bool none() const noexcept
 		{
-			return bits_.none();
+			return this->bits_.none();
 		}
 
-		[[nodiscard]] constexpr std::size_t size() const noexcept
+		[[nodiscard]] bool compare(Flags& cmp) const noexcept
 		{
-			return bits_.size();
+			return this->bits_ == cmp.bits_;
 		}
 
-		[[nodiscard]] std::size_t count() const noexcept
+		[[nodiscard]] bool isset(EnumT e) const noexcept
 		{
-			return bits_.count();
-		}
-
-		constexpr bool operator[](EnumT e) const
-		{
-			return bits_[underlying(e)];
+			return this->bits_.test(std::to_underlying(e));
 		}
 
 	private:
-		static constexpr UnderlyingT underlying(EnumT e)
-		{
-			return static_cast<UnderlyingT>(e);
-		}
-
-	private:
-		std::bitset<underlying(EnumT::ALL)> bits_;
+		std::bitset<std::to_underlying(EnumT::ALL)> bits_;
 	};
 
 	enum class ItemMapFilterNpcs : size_t
