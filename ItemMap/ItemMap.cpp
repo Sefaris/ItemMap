@@ -1022,6 +1022,7 @@ namespace GOTHIC_ENGINE {
 				{
 					CheckFilterRange<FilterOperation::INCREMENT>(this->filterContainers);
 				}
+				refresh = true;
 			}
 		}
 
@@ -1045,6 +1046,7 @@ namespace GOTHIC_ENGINE {
 				{
 					CheckFilterRange<FilterOperation::DECREMENT>(this->filterContainers);
 				}
+				refresh = true;
 			}
 		}
 
