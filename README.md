@@ -9,6 +9,7 @@
 - Show markers on map for interactive objects that have a function
 - Show list of all unique objects and their total amount
 - Search for specific object by name or instance
+- Fake Map mode to use in locations that do not have an actual in-game map. By default accessed by `SHIFT + ]`. Secondary key (`]` - right bracket) can be changed in Gothic.ini.
 
 ## Screenshots
 #### Help panel with controls
@@ -25,6 +26,8 @@
 ![Search for item by instance](https://i.imgur.com/2ITj4Bl.jpeg)
 #### Search for multiple items
 ![Search for multiple items](https://i.imgur.com/dsTX11w.jpeg)
+#### Fake map inside Old Mine in Gothic 1
+![Fake map inside Old Mine in Gothic 1](https://i.imgur.com/P2XKrxI.png)
 
 ## Default ini settings
 All settings besides colors, `ShowTradersNoCond`, `RememberSearchInput` and `ShowFilteredStaticColor` can be changed in-game while interacting with map and are saved after closing the map.
@@ -196,4 +199,8 @@ NewBalanceWispRule=0
 SearchStringSeparator=|
 ; 
 ; Separator used to split search string when searching for multiple objects. [default: |]
+
+NoMapHotkey=KEY_RBRACKET
+;
+; Secondary key used to open Fake Map mode
 ```
