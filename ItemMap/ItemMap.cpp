@@ -87,7 +87,6 @@ namespace GOTHIC_ENGINE {
 			delete this->printViewFakeMap;
 			this->printViewFakeMap = 0;
 		}
-		}
 
 		this->ClearPrintItems();
 	}
