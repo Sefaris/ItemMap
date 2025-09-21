@@ -4,6 +4,9 @@
 namespace GOTHIC_ENGINE {
 	ItemMap::ItemMap()
 	{
+		this->printViewFakeMap = new zCView(1024, 1024, 7168, 7168);
+		this->printViewFakeMap->InsertBack(textureFakeMap.data());
+
 		this->printViewMarker = new zCView(0, 0, 0, 0);
 
 		this->printViewList = new zCView(0, 0, 0, 0);
@@ -17,12 +20,13 @@ namespace GOTHIC_ENGINE {
 		this->printViewHelp = new zCView(0, 0, 0, 0);
 		this->printViewHelp->InsertBack(textureBackground.data());
 
-		zSTRING texturePlayerMark = "L.TGA";
+		auto texturePlayerMark = zSTRING{ "L.TGA" };
 		zCTexture* temp = temp->Load(texturePlayerMark, True);
 		if (temp)
 		{
 			temp->GetPixelSize(this->markX, this->markY);
 			temp->Release();
+			temp = 0;
 		}
 
 		this->OnScreen = false;
@@ -57,21 +61,32 @@ namespace GOTHIC_ENGINE {
 		if (this->printViewMarker)
 		{
 			delete this->printViewMarker;
+			this->printViewMarker = 0;
 		}
 
 		if (this->printViewList)
 		{
 			delete this->printViewList;
+			this->printViewList = 0;
 		}
 
 		if (this->printViewSearchBar)
 		{
 			delete this->printViewSearchBar;
+			this->printViewSearchBar = 0;
 		}
 
 		if (this->printViewHelp)
 		{
 			delete this->printViewHelp;
+			this->printViewHelp = 0;
+		}
+
+		if (this->printViewFakeMap)
+		{
+			delete this->printViewFakeMap;
+			this->printViewFakeMap = 0;
+		}
 		}
 
 		this->ClearPrintItems();
@@ -80,7 +95,6 @@ namespace GOTHIC_ENGINE {
 	void ItemMap::ResizeMarkers(int size)
 	{
 		this->imgSize = std::clamp(size, 5, 50);
-		this->printViewMarker->SetSize(screen->anx(this->imgSize), screen->any(this->imgSize));
 	}
 
 	void ItemMap::ResizeList(int size)
@@ -136,6 +150,8 @@ namespace GOTHIC_ENGINE {
 		this->NewBalanceWispRuleBitflag = sym ? sym->single_intdata : Invalid;
 
 		this->searchStringSeparator = string{ zoptions->ReadString(PluginName.data(), "SearchStringSeparator", this->searchStringSeparator) };
+
+		this->NoMapHotkey = GetKey(zoptions->ReadString(PluginName.data(), "NoMapHotkey", "KEY_RBRACKET").ToChar());
 	}
 
 	zCOLOR ItemMap::HexToColor(std::string_view hexstring)
@@ -268,9 +284,9 @@ namespace GOTHIC_ENGINE {
 			}
 
 #if ENGINE >= Engine_G2
-			zSTRING AIV_EXP = "AIV_VictoryXPGiven";
+			auto AIV_EXP = zSTRING{ "AIV_VictoryXPGiven" };
 #else
-			zSTRING AIV_EXP = "AIV_WASDEFEATEDBYSC";
+			auto AIV_EXP = zSTRING{ "AIV_WASDEFEATEDBYSC" };
 #endif
 			if (!npc->HasFlag(NPC_FLAG_IMMORTAL) && !npc->GetAivar_Union(AIV_EXP) && npc->guild <= NPC_GIL_HUMANS)
 			{
@@ -282,7 +298,7 @@ namespace GOTHIC_ENGINE {
 				this->SetNpcFlag(flags, ItemMapFilterNpcs::TRADER);
 			}
 
-			zSTRING AIV_PARTYMEMBER = "AIV_PARTYMEMBER";
+			auto AIV_PARTYMEMBER = zSTRING{ "AIV_PARTYMEMBER" };
 			if (npc->GetAivar_Union(AIV_PARTYMEMBER))
 			{
 				this->SetNpcFlag(flags, ItemMapFilterNpcs::PARTY);
@@ -338,6 +354,15 @@ namespace GOTHIC_ENGINE {
 			delete it;
 		}
 
+		for (auto it : this->vecItemsInNpcsAll)
+		{
+				delete it;
+		}
+		for (auto it : this->vecItemsInNpcsUniqueAll)
+		{
+				delete it;
+		}
+
 		for (auto it : this->vecContainersAll)
 		{
 			delete it;
@@ -371,6 +396,9 @@ namespace GOTHIC_ENGINE {
 		this->vecNpcsAll.clear();
 		this->vecNpcsUniqueAll.clear();
 
+		this->vecItemsInNpcsAll.clear();
+		this->vecItemsInNpcsUniqueAll.clear();
+
 		this->vecContainersAll.clear();
 		this->vecContainersUniqueAll.clear();
 
@@ -394,6 +422,10 @@ namespace GOTHIC_ENGINE {
 			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
 			});
 
+		std::sort(this->vecItemsInNpcsUniqueAll.begin(), this->vecItemsInNpcsUniqueAll.end(), [](const auto& left, const auto& right) {
+			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
+			});
+
 		std::sort(this->vecContainersUniqueAll.begin(), this->vecContainersUniqueAll.end(), [](const auto& left, const auto& right) {
 			return strcmp(left->name.ToChar(), right->name.ToChar()) < 0;
 			});
@@ -407,6 +439,68 @@ namespace GOTHIC_ENGINE {
 			});
 	}
 
+	void ItemMap::PrintPlayerIcon()
+	{
+			if (this->Hook != HookType::NoMap)
+			{
+					return;
+			}
+
+			screen->InsertItem(this->printViewFakeMap);
+			this->printViewFakeMap->Blit();
+			screen->RemoveItem(this->printViewFakeMap);
+
+			auto playerIcon = zSTRING{ "O.TGA" };
+			auto playerPos = player->GetPositionWorld();
+			auto screenPos = this->GetScreenPos(playerPos, FALSE);
+
+			auto vecNorth = playerPos + zVEC3(0, 0, 1);
+			float azi, ele;
+			player->GetAngles(vecNorth, azi, ele);
+
+			if (azi <= 22.5f && azi > -22.5f)
+			{
+					playerIcon = zSTRING{ "O.TGA" };
+			}
+			else if (azi <= -22.5f && azi > -67.5f)
+			{
+					playerIcon = zSTRING{ "RO.TGA" };
+			}
+			else if (azi <= -67.5f && azi > -112.5f)
+			{
+					playerIcon = zSTRING{ "R.TGA" };
+			}
+			else if (azi <= -112.5f && azi > -157.5f)
+			{
+					playerIcon = zSTRING{ "RU.TGA" };
+			}
+			else if (azi <= 157.5f && azi > 112.5f)
+			{
+					playerIcon = zSTRING{ "LU.TGA" };
+			}
+			else if (azi <= 112.5f && azi > 67.5f)
+			{
+					playerIcon = zSTRING{ "L.TGA" };
+			}
+			else if (azi <= 67.5f && azi > 22.5f)
+			{
+					playerIcon = zSTRING{ "LO.TGA" };
+			}
+			else
+			{
+					playerIcon = zSTRING{ "U.TGA" };
+			}
+
+			this->printViewMarker->ClrPrintwin();
+			screen->InsertItem(this->printViewMarker);
+			this->printViewMarker->InsertBack(playerIcon);
+			this->printViewMarker->SetSize(screen->anx(this->imgSize * 2), screen->any(this->imgSize * 2));
+			this->printViewMarker->SetPos(screenPos.X - (screen->anx(this->imgSize)), screenPos.Y - (screen->any(this->imgSize)));
+			this->printViewMarker->SetColor(GFX_WHITE);
+			this->printViewMarker->Blit();
+			screen->RemoveItem(this->printViewMarker);
+	}
+
 	void ItemMap::PrintMarkers()
 	{
 		if (!this->ShowMarkers)
@@ -416,10 +510,11 @@ namespace GOTHIC_ENGINE {
 
 		this->printViewMarker->ClrPrintwin();
 
+		this->printViewMarker->SetSize(screen->anx(this->imgSize), screen->any(this->imgSize));
+
 		screen->InsertItem(this->printViewMarker);
 		for (auto printItem : this->vecPrintItemsCurrent)
 		{
-
 			if (printItem->groundlevel == ItemMapGroundLevel::HIGHER)
 			{
 				this->printViewMarker->InsertBack(textureMarkerUp.data());
@@ -487,7 +582,7 @@ namespace GOTHIC_ENGINE {
 		int marginY = (8192 - (fontHeight * (maxItems + 2))) / 2;
 		int x = 200, y = 0, temp = 1;
 
-		zSTRING total = zSTRING{ std::format("Uniques: {} (Total count: {})", this->vecPrintItemsUniqueCurrent.size(), this->CurrentUniquesTotalCount).c_str() };
+		auto total = zSTRING{ std::format("Uniques: {} (Total count: {})", this->vecPrintItemsUniqueCurrent.size(), this->CurrentUniquesTotalCount).c_str() };
 		this->printViewList->Print((8192 / 2) - (this->printViewList->FontSize(total) / 2), marginY, total);
 
 		size_t min = this->listPage * maxItems;
@@ -498,7 +593,7 @@ namespace GOTHIC_ENGINE {
 
 			y = temp * fontHeight + marginY;
 
-			zSTRING txt = [&printItemUnique]()->zSTRING
+			auto txt = [&printItemUnique]()->zSTRING
 				{
 					if (printItemUnique->totalamount > printItemUnique->count)
 					{
@@ -514,7 +609,7 @@ namespace GOTHIC_ENGINE {
 		}
 
 		y = (maxItems + 1) * fontHeight + marginY;
-		zSTRING page = zSTRING{ std::format("Page: {0}/{1}", this->listPage + 1, this->listPageMax + 1).c_str() };
+		auto page = zSTRING{ std::format("Page: {0}/{1}", this->listPage + 1, this->listPageMax + 1).c_str() };
 		this->printViewList->Print((8192 / 2) - (this->printViewList->FontSize(page) / 2), y, page);
 
 		this->printViewList->Blit();
@@ -554,14 +649,14 @@ namespace GOTHIC_ENGINE {
 
 		this->printViewSearchBar->SetFontColor(GFX_COLDGREY);
 
-		zSTRING txtSearchFilter = this->GetFilterName();
+		auto txtSearchFilter = this->GetFilterName();
 
 		if ((this->mode == ItemMapMode::ITEMS && this->filterItems > static_cast<ItemMapFilterItems>(0))
 			|| (this->mode == ItemMapMode::NPCS && this->filterNpcs > static_cast<ItemMapFilterNpcs>(0))
 			|| (this->mode == ItemMapMode::CONTAINERS && this->filterContainers > static_cast<ItemMapFilterContainers>(0))
 			)
 		{
-			zSTRING less = "<<";
+			auto less = zSTRING{ "<<" };
 			this->printViewSearchBar->Print(0, y, less);
 		}
 
@@ -570,7 +665,7 @@ namespace GOTHIC_ENGINE {
 			|| (this->mode == ItemMapMode::CONTAINERS && this->filterContainers < ItemMapFilterContainers::ALL)
 			)
 		{
-			zSTRING more = ">>";
+			auto more = zSTRING{ ">>" };
 			this->printViewSearchBar->Print(8192 - this->printViewSearchBar->FontSize(more), y, more);
 		}
 
@@ -578,12 +673,12 @@ namespace GOTHIC_ENGINE {
 		this->printViewSearchBar->Print(0 + (8192 / 2) - (txtSearchFilterWidth / 2), fontHeight * y++, txtSearchFilter);
 
 		this->printViewSearchBar->SetFontColor(GFX_WHITE);
-		zSTRING txtSearchTitle = "Search";
+		auto txtSearchTitle = zSTRING{ "Search" };
 		this->printViewSearchBar->Print(0, fontHeight * y++, txtSearchTitle);
 
 		if (this->search.IsEmpty() && !this->SearchBarActive)
 		{
-			zSTRING txtSearchPlaceholder = "Press ENTER to search";
+			auto txtSearchPlaceholder = zSTRING{ "Press ENTER to search" };
 			this->printViewSearchBar->SetFontColor(GFX_PINK);
 			this->printViewSearchBar->Print(0, fontHeight * y++, txtSearchPlaceholder);
 		}
@@ -619,8 +714,8 @@ namespace GOTHIC_ENGINE {
 
 		int margin = 200;
 
-		zSTRING title = zSTRING{ PluginName.data() };
-		zSTRING version = zSTRING{ PluginVersion.data() };
+		auto title = zSTRING{ PluginName.data() };
+		auto version = zSTRING{ PluginVersion.data() };
 
 		this->printViewHelp->SetFont("FONT_OLD_20_WHITE_HI.TGA");
 		auto fontHeightBig = this->printViewHelp->FontY();
@@ -662,6 +757,7 @@ namespace GOTHIC_ENGINE {
 			return;
 		}
 
+		this->PrintPlayerIcon();
 		this->PrintMarkers();
 		this->PrintList();
 		this->PrintSearchBar();
@@ -702,6 +798,51 @@ namespace GOTHIC_ENGINE {
 		auto color = this->GetColor(flags);
 		this->vecNpcsAll.push_back(new PrintItem(pos, color, npc->name, npc->GetInstanceName(), flags, groundlevel));
 
+		npc->inventory2.UnpackAllItems();
+
+#if ENGINE <= Engine_G1A
+		for (int i = INV_NONE; i < INV_MAX; i++)
+		{
+			auto npcInv = npc->inventory2.inventory[i].next;
+			while (npcInv)
+			{
+				auto item = npcInv->GetData();
+				npcInv = npcInv->next;
+
+				if (item->instanz < 0)
+				{
+					continue;
+				}
+
+				if (item->HasFlag(ITM_CAT_ARMOR))
+				{
+					continue;
+				}
+
+				this->AddPrintItemInNpc(item, pos, groundlevel, color);
+		 }
+		}
+#else
+		auto npcInv = npc->inventory2.inventory.next;
+		while (npcInv)
+		{
+			auto item = npcInv->GetData();
+			npcInv = npcInv->next;
+
+			if (item->instanz < 0)
+			{
+				continue;
+			}
+
+			if (item->HasFlag(ITM_FLAG_ACTIVE))
+			{
+				continue;
+			}
+
+			this->AddPrintItemInNpc(item, pos, groundlevel, color);
+		}
+#endif
+
 		for (auto it : this->vecNpcsUniqueAll)
 		{
 			if (it->instanz == npc->instanz && std::get<ItemMapFilterNpcsFlags>(it->flags).compare(flags)) {
@@ -712,10 +853,25 @@ namespace GOTHIC_ENGINE {
 		this->vecNpcsUniqueAll.push_back(new PrintItemUnique(npc->instanz, npc->name, npc->GetInstanceName(), 1, 1, flags));
 	}
 
+	void ItemMap::AddPrintItemInNpc(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel, zCOLOR color)
+	{
+		this->vecItemsInNpcsAll.push_back(new PrintItem(pos, color, item->name, item->GetInstanceName(), 0, groundlevel));
+
+		for (auto it : this->vecItemsInNpcsUniqueAll)
+		{
+			if (it->instanz == item->instanz) {
+				it->count = it->count + 1;
+				it->totalamount = it->totalamount + item->amount;
+				return;
+			}
+		}
+		this->vecItemsInNpcsUniqueAll.push_back(new PrintItemUnique(item->instanz, item->name, item->GetInstanceName(), 1, item->amount, 0));
+	}
+
 	void ItemMap::AddPrintInteractive(oCMobInter* inter, zPOS pos, ItemMapGroundLevel groundlevel)
 	{
 		auto color = zCOLOR(128, 128, 128);
-		zSTRING name = "";
+		auto name = zSTRING{ "" };
 		auto funcName = inter->onStateFuncName;
 		funcName.Lower();
 		if (!inter->name.IsEmpty())
@@ -778,7 +934,7 @@ namespace GOTHIC_ENGINE {
 
 	void ItemMap::AddPrintContainer(oCMobContainer* container, zPOS pos, ItemMapGroundLevel groundlevel)
 	{
-		zSTRING name = "";
+		auto name = zSTRING{ "" };
 		if (!container->name.IsEmpty()) {
 			if (auto symbol = parser->GetSymbol(container->name))
 			{
@@ -836,6 +992,10 @@ namespace GOTHIC_ENGINE {
 		case ItemMapMode::ITEMS:
 			return this->vecItemsAll;
 		case ItemMapMode::NPCS:
+			if (this->filterNpcs == ItemMapFilterNpcs::ITEMS)
+			{
+				return this->vecItemsInNpcsAll;
+			}
 			return this->vecNpcsAll;
 		case ItemMapMode::CONTAINERS:
 			if (this->filterContainers == ItemMapFilterContainers::ITEMS)
@@ -857,6 +1017,10 @@ namespace GOTHIC_ENGINE {
 		case ItemMapMode::ITEMS:
 			return this->vecItemsUniqueAll;
 		case ItemMapMode::NPCS:
+			if (this->filterNpcs == ItemMapFilterNpcs::ITEMS)
+			{
+				return this->vecItemsInNpcsUniqueAll;
+			}
 			return this->vecNpcsUniqueAll;
 		case ItemMapMode::CONTAINERS:
 			if (this->filterContainers == ItemMapFilterContainers::ITEMS)
@@ -889,7 +1053,7 @@ namespace GOTHIC_ENGINE {
 			{
 				continue;
 			}
-			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<ItemMapFilterNpcsFlags>(printItem->flags), this->filterNpcs))
+			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::ITEMS && this->filterNpcs < ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<ItemMapFilterNpcsFlags>(printItem->flags), this->filterNpcs))
 			{
 				continue;
 			}
@@ -913,7 +1077,7 @@ namespace GOTHIC_ENGINE {
 			{
 				continue;
 			}
-			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs != ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<ItemMapFilterNpcsFlags>(printItemUnique->flags), this->filterNpcs))
+			else if (this->mode == ItemMapMode::NPCS && this->filterNpcs > ItemMapFilterNpcs::ITEMS && this->filterNpcs < ItemMapFilterNpcs::ALL && !this->HasNpcFlag(std::get<ItemMapFilterNpcsFlags>(printItemUnique->flags), this->filterNpcs))
 			{
 				continue;
 			}
@@ -927,7 +1091,7 @@ namespace GOTHIC_ENGINE {
 		}
 	}
 
-	void ItemMap::Close()
+	void ItemMap::Close(bool clearBuffer)
 	{
 		//player->SetMovLock(FALSE);
 		this->LastInit = std::chrono::high_resolution_clock::now();
@@ -953,6 +1117,11 @@ namespace GOTHIC_ENGINE {
 		zoptions->WriteInt(PluginName.data(), "PrevFilterItems", static_cast<int>(this->filterItems), 0);
 		zoptions->WriteInt(PluginName.data(), "PrevFilterNpcs", static_cast<int>(this->filterNpcs), 0);
 		zoptions->WriteInt(PluginName.data(), "PrevFilterContainers", static_cast<int>(this->filterContainers), 0);
+
+		if (clearBuffer)
+		{
+				zinput->ClearKeyBuffer();
+		}
 	}
 
 	void ItemMap::HandleInput()
@@ -967,9 +1136,15 @@ namespace GOTHIC_ENGINE {
 		bool shift = (GetKeyState(VK_SHIFT) & 0x8000);
 		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000);
 
+		if (this->Hook == HookType::NoMap && !this->SearchBarActive && (shift && zKeyToggled(this->NoMapHotkey)))
+		{
+			this->Close(true);
+			return;
+		}
+
 		if (zKeyToggled(KEY_ESCAPE) || (!this->SearchBarActive && zBindPressed(GAME_SCREEN_MAP)))
 		{
-			this->Close();
+			this->Close((this->Hook == HookType::NoMap));
 			return;
 		}
 
@@ -1192,9 +1367,9 @@ namespace GOTHIC_ENGINE {
 			return false;
 		}
 
-		zSTRING mapLevelName = docMap->Level;
+		auto mapLevelName = docMap->Level;
 		mapLevelName.Replace("/", "\\");
-		zSTRING worldLevelName = ogame->GetGameWorld()->GetWorldFilename();
+		auto worldLevelName = ogame->GetGameWorld()->GetWorldFilename();
 		worldLevelName.Replace("/", "\\");
 
 		if (!worldLevelName.CompareI(mapLevelName))
@@ -1244,8 +1419,11 @@ namespace GOTHIC_ENGINE {
 			return;
 		}
 
-		if (!this->OnScreen && this->Hook == HookType::NoHook)
+		if (this->OnScreen || this->Hook != HookType::NoHook)
 		{
+				return;
+		}
+
 			auto& docMan = oCDocumentManager::GetDocumentManager();
 			auto docList = docMan.ListDocuments->next;
 
@@ -1268,14 +1446,56 @@ namespace GOTHIC_ENGINE {
 				{
 					return;
 				}
-			}
 		}
+	}
+
+	void ItemMap::NoMapHack()
+	{
+			if (this->OnScreen || this->Hook != HookType::NoHook)
+			{
+					return;
+			}
+
+			if (!((zKeyPressed(KEY_LSHIFT) || zKeyPressed(KEY_RSHIFT)) && zKeyToggled(this->NoMapHotkey)))
+			{
+					return;
+		}
+
+			if (!ogame->GetGameWorld())
+			{
+					return;
+	}
+
+			player->CloseInventory();
+			player->CloseDeadNpc();
+			player->CloseSteal();
+			player->CloseTradeContainer();
+
+			auto x = static_cast<float>(screen->nax(1024));
+			auto y = static_cast<float>(screen->nay(1024));
+			auto xs = static_cast<float>(screen->nax(7168));
+			auto ys = static_cast<float>(screen->nay(7168));
+
+			this->mapCoords = zVEC4(x, y, xs, ys);
+
+			auto& worldBox = ogame->GetGameWorld()->bspTree.bspRoot->bbox3D;
+			itemMap->worldCoords = { 0, 0, 0, 0 };
+
+			itemMap->worldCoords[0] = worldBox.mins[0];
+			itemMap->worldCoords[1] = worldBox.mins[2];
+			itemMap->worldCoords[2] = worldBox.maxs[0];
+			itemMap->worldCoords[3] = worldBox.maxs[2];
+
+			this->InitMap(HookType::NoMap);
 	}
 
 	void ItemMap::CoMHack()
 	{
-		if (!this->OnScreen && this->Hook == HookType::NoHook)
+		if (this->OnScreen || this->Hook != HookType::NoHook)
 		{
+				return;
+		}
+
 			if (this->indexSpriteMapHandle == Invalid || this->indexSpriteCursorHandle == Invalid)
 			{
 				return;
@@ -1334,7 +1554,6 @@ namespace GOTHIC_ENGINE {
 
 			this->InitMap(HookType::CoM, SpriteRotate);
 		}
-	}
 
 	void ItemMap::Rotate90Degree(int& x, int& y, zVEC2& mapCenter)
 	{
@@ -1343,6 +1562,45 @@ namespace GOTHIC_ENGINE {
 
 		x = newx;
 		y = newy;
+	}
+
+	zPOS ItemMap::GetScreenPos(zVEC3& vobPos, int rotate)
+	{
+			zVEC2 mapCenter = zVEC2((this->mapCoords[0] + this->mapCoords[2]) / 2, (this->mapCoords[1] + this->mapCoords[3]) / 2);
+			zVEC2 worldDim = zVEC2(this->worldCoords[2] - this->worldCoords[0], this->worldCoords[3] - this->worldCoords[1]);
+
+			zVEC2 world2map = zVEC2((this->mapCoords[2] - this->mapCoords[0]) / worldDim[0], (this->mapCoords[3] - this->mapCoords[1]) / worldDim[1]);
+#if ENGINE <= Engine_G1A
+			world2map[1] = world2map[1] * -1.0f;
+#endif
+
+			int x = 0, y = 0;
+
+#if ENGINE <= Engine_G1A
+			x = static_cast<int>((world2map[0] * vobPos[VX]) + mapCenter[0]);
+			y = static_cast<int>((world2map[1] * vobPos[VZ]) + mapCenter[1]);
+#else
+			x = static_cast<int>(this->mapCoords[0] + (world2map[0] * (vobPos[VX] - this->worldCoords[0])));
+			y = static_cast<int>(this->mapCoords[3] - (world2map[1] * (vobPos[VZ] - this->worldCoords[1])));
+#endif
+
+			if (rotate)
+			{
+					this->Rotate90Degree(x, y, mapCenter);
+			}
+
+			zPOS pos;
+
+			pos.X = screen->anx(x);
+			pos.Y = screen->any(y);
+
+			if (this->Hook != HookType::CoM && this->Hook != HookType::NoMap)
+			{
+					pos.X += screen->anx((this->markX / 2));
+					pos.Y += screen->any((this->markY / 2));
+			}
+
+			return pos;
 	}
 
 	void ItemMap::InitMap(HookType hook, int rotate)
@@ -1358,19 +1616,9 @@ namespace GOTHIC_ENGINE {
 		this->listPageMax = 0;
 		//player->SetMovLock(TRUE);
 
-		auto world = ogame->GetGameWorld();
-
-		zVEC2 mapCenter = zVEC2((this->mapCoords[0] + this->mapCoords[2]) / 2, (this->mapCoords[1] + this->mapCoords[3]) / 2);
-		zVEC2 worldDim = zVEC2(this->worldCoords[2] - this->worldCoords[0], this->worldCoords[3] - this->worldCoords[1]);
-
-		zVEC2 world2map = zVEC2((this->mapCoords[2] - this->mapCoords[0]) / worldDim[0], (this->mapCoords[3] - this->mapCoords[1]) / worldDim[1]);
-
-#if ENGINE <= Engine_G1A
-		world2map[1] = world2map[1] * -1.0f;
-#endif
-
 		float playerPosY = player->GetPositionWorld()[VY];
 
+		auto world = ogame->GetGameWorld();
 		this->ClearPrintItems();
 		auto listVobs = world->voblist->next;
 		while (listVobs)
@@ -1390,16 +1638,6 @@ namespace GOTHIC_ENGINE {
 				continue;
 			}
 
-			int x = 0, y = 0;
-
-#if ENGINE <= Engine_G1A
-			x = static_cast<int>((world2map[0] * vobPos[VX]) + mapCenter[0]);
-			y = static_cast<int>((world2map[1] * vobPos[VZ]) + mapCenter[1]);
-#else
-			x = static_cast<int>(this->mapCoords[0] + (world2map[0] * (vobPos[VX] - this->worldCoords[0])));
-			y = static_cast<int>(this->mapCoords[3] - (world2map[1] * (vobPos[VZ] - this->worldCoords[1])));
-#endif
-
 			ItemMapGroundLevel groundlevel = ItemMapGroundLevel::SAME;
 			if (playerPosY - vobPos[VY] > 500.0f)
 			{
@@ -1410,22 +1648,7 @@ namespace GOTHIC_ENGINE {
 				groundlevel = ItemMapGroundLevel::HIGHER;
 			}
 
-			zPOS pos;
-
-			if (rotate)
-			{
-				this->Rotate90Degree(x, y, mapCenter);
-			}
-
-			pos.X = screen->anx(x);
-			pos.Y = screen->any(y);
-
-			if (this->Hook != HookType::CoM)
-			{
-				pos.X += screen->anx((this->markX / 2));
-				pos.Y += screen->any((this->markY / 2));
-			}
-
+			auto	pos = this->GetScreenPos(vobPos, rotate);
 
 			if (pos.X < 0 || pos.X > 8192
 				|| pos.Y < 0 || pos.Y > 8192

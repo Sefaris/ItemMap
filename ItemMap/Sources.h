@@ -3,6 +3,7 @@
 
 // Automatically generated block
 #pragma region Includes
+#include "KeyCodes.cpp"
 #include "Utils.cpp"
 #include "ItemMap.cpp"
 #include "ItemMap_Hooks.cpp"

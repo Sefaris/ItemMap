@@ -4,7 +4,7 @@
 namespace GOTHIC_ENGINE
 {
 	static constexpr std::string_view PluginName = "ItemMap";
-	static constexpr std::string_view PluginVersion = "1.0.5a";
+	static constexpr std::string_view PluginVersion = "1.0.6";
 
 	static constexpr float sin90 = 1.0f; // 90 degree sinus
 	static constexpr float cos90 = 0.0f; // 90 degree cosinus
@@ -14,10 +14,13 @@ namespace GOTHIC_ENGINE
 	static constexpr std::string_view textureMarkerUp = "ITEMMAP_MARKER_UP.TGA";
 	static constexpr std::string_view textureMarkerDown = "ITEMMAP_MARKER_DOWN.TGA";
 
+	static constexpr std::string_view textureFakeMap = "ITEMMAP_FAKE_MAP.TGA";
+	
 	enum class HookType : size_t
 	{
 		Normal,
 		CoM,
+		NoMap,
 		NoHook
 	};
 
@@ -118,6 +121,7 @@ namespace GOTHIC_ENGINE
 
 	enum class ItemMapFilterNpcs : size_t
 	{
+		ITEMS,
 		DEAD,
 		ANGRY,
 		FRIENDLY,
@@ -134,6 +138,7 @@ namespace GOTHIC_ENGINE
 	static constexpr auto ColorsNpcsMax = static_cast<size_t>(ItemMapFilterNpcs::ALL);
 
 	static constexpr std::string_view FilterNpcsNames[ColorsNpcsMax + 1] = {
+		"ItemsInNpcs",
 		"Dead",
 		"Angry",
 		"Friendly",
@@ -148,6 +153,7 @@ namespace GOTHIC_ENGINE
 	};
 
 	static constexpr std::string_view DefaultColorsNpcs[ColorsNpcsMax] = {
+		"#FFFFFF",
 		"#000000",
 		"#FF8000",
 		"#00FF00",
@@ -255,6 +261,7 @@ namespace GOTHIC_ENGINE
 		void ClearPrintItems();
 		void AddPrintItem(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel);
 		void AddPrintNpc(oCNpc* npc, zPOS pos, ItemMapGroundLevel groundlevel);
+		void AddPrintItemInNpc(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel, zCOLOR color);
 		void AddPrintItemInContainer(oCItem* item, zPOS pos, ItemMapGroundLevel groundlevel, zCOLOR color);
 		void AddPrintContainer(oCMobContainer* container, zPOS pos, ItemMapGroundLevel groundlevel);
 		void AddPrintInteractive(oCMobInter* inter, zPOS pos, ItemMapGroundLevel groundlevel);
@@ -264,7 +271,7 @@ namespace GOTHIC_ENGINE
 		void ResizeMarkers(int size);
 		void ResizeList(int size);
 		void HandleInput();
-		void Close();
+		void Close(bool clearBuffer = false);
 		bool TryInitMap(oCViewDocument* document);
 		void InitMap(HookType hook, int rotate = 0);
 		zCOLOR GetColor(std::variant<ItemMapFilterItems, ItemMapFilterNpcsFlags, ItemMapFilterContainers> flags);
@@ -300,16 +307,22 @@ namespace GOTHIC_ENGINE
 		//For CoM ikarus maps
 		void CoMHack();
 
+		//If map iteam for current world doesn't exist
+		void NoMapHack();
+
 	private:
 		void PrintMarkers();
 		void PrintList();
 		void PrintSearchBar();
 		void PrintHelp();
+		void PrintPlayerIcon();
 		std::vector<PrintItem*>& GetCurrentVectorAll();
 		std::vector<PrintItemUnique*>& GetCurrentVectorUniques();
 		zSTRING GetFilterName() const;
 		zCOLOR HexToColor(std::string_view hexstring);
+		zPOS GetScreenPos(zVEC3& vobPos, int rotate);
 
+		zCView* printViewFakeMap;
 		zCView* printViewMarker;
 		zCView* printViewList;
 		zCView* printViewSearchBar;
@@ -319,6 +332,8 @@ namespace GOTHIC_ENGINE
 		std::vector<PrintItemUnique*> vecItemsUniqueAll;
 		std::vector<PrintItem*> vecNpcsAll;
 		std::vector<PrintItemUnique*> vecNpcsUniqueAll;
+		std::vector<PrintItem*> vecItemsInNpcsAll;
+		std::vector<PrintItemUnique*> vecItemsInNpcsUniqueAll;
 		std::vector<PrintItem*> vecContainersAll;
 		std::vector<PrintItemUnique*> vecContainersUniqueAll;
 		std::vector<PrintItem*> vecItemsInContainersAll;
@@ -361,6 +376,8 @@ namespace GOTHIC_ENGINE
 		int indexSpriteMapHandle = 0;
 		int indexSpriteCursorHandle = 0;
 		void Rotate90Degree(int& x, int& y, zVEC2& mapCenter);
+
+		int NoMapHotkey;
 	};
 
 	std::unique_ptr<ItemMap> itemMap;

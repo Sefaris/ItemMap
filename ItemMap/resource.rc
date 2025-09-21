@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Русский (Россия) resources
+// Russian (Russia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
@@ -59,8 +59,8 @@ IDR_PATCH1              PATCH                   "Plugin.patch"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,1425
- PRODUCTVERSION 1,0,0,1425
+ FILEVERSION 1,0,6,1544
+ PRODUCTVERSION 1,0,6,1544
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -77,12 +77,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Sefaris"
             VALUE "FileDescription", "In-game map with items and npcs"
-            VALUE "FileVersion", "1.0.0.1425"
+            VALUE "FileVersion", "1.0.6.1544"
             VALUE "InternalName", "ItemMap"
             VALUE "LegalCopyright", "Copyright (C) 2023"
             VALUE "OriginalFilename", "ItemMap"
             VALUE "ProductName", "ItemMap"
-            VALUE "ProductVersion", "1.0.0.1425"
+            VALUE "ProductVersion", "1.0.6.1544"
         END
     END
     BLOCK "VarFileInfo"
@@ -101,7 +101,7 @@ END
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "union.ico"
 
-#endif    // Русский (Россия) resources
+#endif    // Russian (Russia) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

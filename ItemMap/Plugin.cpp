@@ -21,6 +21,7 @@ namespace GOTHIC_ENGINE {
 	void Game_Loop() {
 		itemMap->InitMapHack();
 		itemMap->CoMHack();
+		itemMap->NoMapHack();
 	}
 
 	void Game_PostLoop() {

@@ -2796,6 +2796,9 @@
     <ClInclude Include="Utils.cpp">
       <Filter>Plugin\Workspace\Utils</Filter>
     </ClInclude>
+    <ClInclude Include="KeyCodes.cpp">
+      <Filter>Plugin\Workspace\Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".build_settings.inl">
