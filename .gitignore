@@ -374,3 +374,7 @@ FodyWeavers.xsd
 *.vdf
 
 PDB/
+# Union 1.0m CMake/msvc-wine generated files
+/out/
+/compile_commands.json
+/cmake/IntelliSenseActivePreset.h
